@@ -36,6 +36,21 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 .muted { color: var(--muted); font-size: 13px; }
 .ok { color: var(--ok); font-size: 13px; }
 
+#login-sent {
+  margin-top: 12px;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0b7a33;
+  background: color-mix(in srgb, var(--ok) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ok) 40%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) #login-sent { color: #6ee7a0; }
+}
+:root[data-theme="dark"] #login-sent { color: #6ee7a0; }
+
 .hero {
   text-align: center;
   padding: 28px 8px 6px;

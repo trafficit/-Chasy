@@ -434,6 +434,7 @@ def public_info():
         "currency": settings.invoice_currency.upper(),
         "currency_sign": inv.currency_sign(),
         "invoice_enabled": inv.enabled(),
+        "auth_wait": settings.auth_min_interval_sec,
     }
 
 

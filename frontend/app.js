@@ -745,6 +745,7 @@ $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = $("login-email").value.trim();
   if (!email) return;
+  if ($("login-send").disabled) return;
   try {
     localStorage.setItem("chasy_email", email);
   } catch (_) {}
@@ -756,10 +757,36 @@ $("login-form").addEventListener("submit", async (ev) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (r.ok) $("login-sent").hidden = false;
-  else if (r.status === 429) toast(t("err_rate"));
-  else toast(t("err_mail"));
+  if (r.ok) {
+    $("login-sent").hidden = false;
+    lockSendButton((pubInfo && pubInfo.auth_wait) || 30);
+  } else if (r.status === 429) {
+    toast(t("err_rate"));
+    lockSendButton((pubInfo && pubInfo.auth_wait) || 30);
+  } else {
+    toast(t("err_mail"));
+  }
 });
+
+function lockSendButton(seconds) {
+  const btn = $("login-send");
+  const base = t("login_btn");
+  let left = Math.max(1, Math.round(seconds));
+  btn.disabled = true;
+  const render = () => {
+    btn.textContent = left > 0 ? `${base} · ${left}` : base;
+  };
+  render();
+  clearInterval(lockSendButton._t);
+  lockSendButton._t = setInterval(() => {
+    left -= 1;
+    if (left <= 0) {
+      clearInterval(lockSendButton._t);
+      btn.disabled = false;
+    }
+    render();
+  }, 1000);
+}
 
 $("logout").addEventListener("click", async () => {
   await api("/api/auth/logout", { method: "POST" });
