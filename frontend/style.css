@@ -103,6 +103,7 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 #about p { margin: 8px 0; }
 #about #about-price { font-size: 13px; color: var(--muted); }
 #about a { color: var(--accent); }
+#about #invoice-link { font-weight: 600; }
 #about form { margin-top: 14px; }
 #about form button { width: 100%; }
 

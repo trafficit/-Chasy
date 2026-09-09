@@ -43,5 +43,22 @@ class Settings(BaseSettings):
     # bump when the /terms text changes; stored per user on acceptance
     tos_version: str = "2026-09-09"
 
+    # ---- pricing / invoices ----
+    invoice_price: str = "7"          # per company per month
+    invoice_currency: str = "EUR"
+    invoice_due_days: int = 7
+    invoice_number_prefix: str = "PF"  # proforma
+    # seller block printed on the invoice. If name or IBAN is empty, the
+    # "create invoice" button is hidden and only the price is shown.
+    seller_name: str = ""
+    seller_address: str = ""
+    seller_reg_id: str = ""           # IČO / рег. номер
+    seller_vat_id: str = ""           # DIČ / IČ DPH (empty if not a VAT payer)
+    seller_iban: str = ""
+    seller_bank: str = ""
+    seller_email: str = ""
+    invoice_note: str = "Nie sme platcami DPH."
+
 
 settings = Settings()
+

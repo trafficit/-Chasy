@@ -109,6 +109,17 @@
         <tbody id="users"></tbody>
       </table>
     </section>
+
+    <section class="card scroll">
+      <h2>Счета (проформы)</h2>
+      <table>
+        <thead>
+          <tr><th>№</th><th>VS</th><th>Плательщик</th><th>Email</th>
+            <th>Мес.</th><th>Сумма</th><th>Выписан</th><th>Оплатить до</th></tr>
+        </thead>
+        <tbody id="invoices"></tbody>
+      </table>
+    </section>
   </main>
 </div>
 
@@ -157,13 +168,36 @@ function showAuth(text) {
 function fmt(d) { return d ? d : "—"; }
 
 async function loadAll() {
-  const [lic, usr] = await Promise.all([
+  const [lic, usr, invs] = await Promise.all([
     api("/api/admin/licenses").then((r) => r.json()),
     api("/api/admin/users").then((r) => r.json()),
+    api("/api/admin/invoices").then((r) => r.json()),
   ]);
   renderLicenses(lic);
   renderUsers(usr);
-  msg(`Кодов: ${lic.length} · пользователей: ${usr.length}`, "muted");
+  renderInvoices(invs);
+  msg(
+    `Кодов: ${lic.length} · пользователей: ${usr.length} · счетов: ${invs.length}`,
+    "muted"
+  );
+}
+
+function renderInvoices(rows) {
+  const tb = $("invoices");
+  tb.innerHTML = "";
+  for (const i of rows) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td><code>${i.number}</code></td>
+      <td><code>${i.variable_symbol}</code></td>
+      <td>${i.buyer_name || "—"}</td>
+      <td>${i.user_email || "—"}</td>
+      <td>${i.months}</td>
+      <td>${i.amount} ${i.currency}</td>
+      <td class="muted">${i.issued_on}</td>
+      <td class="muted">${i.due_on || "—"}</td>`;
+    tb.append(tr);
+  }
 }
 
 function renderLicenses(rows) {

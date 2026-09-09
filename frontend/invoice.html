@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Chasy — счёт</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --ink: #1b1f24; --muted: #6b7280;
+    --line: #d7dbe0; --accent: #1f6feb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 20px 14px 60px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 12px; }
+  a { color: var(--accent); }
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 16px; margin: 12px 0;
+  }
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 3px; }
+  input, select, textarea {
+    font: inherit; color: var(--ink); background: var(--bg);
+    border: 1px solid var(--line); border-radius: 7px; padding: 8px; width: 100%;
+  }
+  textarea { min-height: 60px; resize: vertical; }
+  button {
+    font: inherit; font-weight: 600; border: 1px solid var(--accent);
+    background: var(--accent); color: #fff; border-radius: 7px;
+    padding: 9px 14px; cursor: pointer; margin-top: 12px;
+  }
+  button.ghost { background: transparent; color: var(--ink); border-color: var(--line); }
+  .msg { margin: 8px 0; color: var(--muted); }
+  .err { color: #d1242f; }
+
+  /* invoice document */
+  #doc { color: #111; background: #fff; }
+  #doc .head { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+  #doc .parties { display: flex; flex-wrap: wrap; gap: 24px; margin: 16px 0; }
+  #doc .party { flex: 1 1 240px; }
+  #doc .party h3 { font-size: 12px; text-transform: uppercase; color: #666; margin: 0 0 4px; }
+  #doc table { width: 100%; border-collapse: collapse; margin: 14px 0; }
+  #doc th, #doc td { border-bottom: 1px solid var(--line); padding: 7px 6px; text-align: left; }
+  #doc td.num, #doc th.num { text-align: right; }
+  #doc .total { font-size: 16px; font-weight: 700; text-align: right; margin: 8px 0 16px; }
+  #doc .pay div { margin: 3px 0; }
+  #doc .muted { color: #666; font-size: 12px; }
+  code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  @media print {
+    body { background: #fff; padding: 0; }
+    .noprint { display: none !important; }
+    .card { border: none; padding: 0; margin: 0; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p class="noprint"><a href="/" data-t="back">← Назад в приложение</a></p>
+  <h1 class="noprint" data-t="title">Счёт на оплату</h1>
+  <div id="msg" class="msg noprint"></div>
+
+  <section id="form-card" class="card noprint" hidden>
+    <label data-t="f_company">Компания / название</label>
+    <input id="f-company" type="text" autocomplete="organization" />
+    <div style="display:flex; gap:10px; flex-wrap:wrap">
+      <div style="flex:1 1 160px">
+        <label data-t="f_reg">Рег. номер</label>
+        <input id="f-reg" type="text" />
+      </div>
+      <div style="flex:1 1 160px">
+        <label data-t="f_vat">НДС / VAT ID</label>
+        <input id="f-vat" type="text" />
+      </div>
+    </div>
+    <label data-t="f_address">Адрес</label>
+    <textarea id="f-address"></textarea>
+    <label data-t="f_months">Период (месяцев)</label>
+    <select id="f-months">
+      <option value="1">1</option>
+      <option value="3">3</option>
+      <option value="6">6</option>
+      <option value="12">12</option>
+    </select>
+    <div>
+      <button id="create" data-t="create">Создать счёт</button>
+    </div>
+  </section>
+
+  <section id="doc" class="card" hidden></section>
+
+  <div class="noprint">
+    <button id="print" class="ghost" hidden data-t="print">Печать / PDF</button>
+    <button id="again" class="ghost" hidden data-t="again">Новый счёт</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+const $ = (id) => document.getElementById(id);
+
+const T = {
+  ru: {
+    back: "← Назад в приложение", title: "Счёт на оплату",
+    f_company: "Компания / название", f_reg: "Рег. номер", f_vat: "НДС / VAT ID",
+    f_address: "Адрес", f_months: "Период (месяцев)", create: "Создать счёт",
+    print: "Печать / PDF", again: "Новый счёт",
+    need_login: "Сначала войдите в приложение, потом откройте эту страницу.",
+    disabled: "Выставление счетов не настроено администратором.",
+    doc_title: "СЧЁТ (ПРОФОРМА)", supplier: "Поставщик", customer: "Плательщик",
+    number: "Счёт №", vs: "Переменный символ", issued: "Дата выписки",
+    due: "Оплатить до", reg: "Рег. №", vat: "НДС №",
+    desc: "Наименование", qty: "Мес.", unit: "Цена/мес", amount: "Сумма",
+    total: "Итого к оплате", payment: "Оплата",
+    transfer: "Банковский перевод (в т.ч. Wise)", bank: "Банк",
+    product: "Chasy — доступ к сервису учёта рабочего времени",
+    hint: "После оплаты пришлите подтверждение — вышлем код доступа.",
+  },
+  uk: {
+    back: "← Назад до застосунку", title: "Рахунок на оплату",
+    f_company: "Компанія / назва", f_reg: "Рег. номер", f_vat: "ПДВ / VAT ID",
+    f_address: "Адреса", f_months: "Період (місяців)", create: "Створити рахунок",
+    print: "Друк / PDF", again: "Новий рахунок",
+    need_login: "Спершу увійдіть у застосунок, потім відкрийте цю сторінку.",
+    disabled: "Виставлення рахунків не налаштоване адміністратором.",
+    doc_title: "РАХУНОК (ПРОФОРМА)", supplier: "Постачальник", customer: "Платник",
+    number: "Рахунок №", vs: "Змінний символ", issued: "Дата виписки",
+    due: "Сплатити до", reg: "Рег. №", vat: "ПДВ №",
+    desc: "Найменування", qty: "Міс.", unit: "Ціна/міс", amount: "Сума",
+    total: "Разом до сплати", payment: "Оплата",
+    transfer: "Банківський переказ (у т.ч. Wise)", bank: "Банк",
+    product: "Chasy — доступ до сервісу обліку робочого часу",
+    hint: "Після оплати надішліть підтвердження — вишлемо код доступу.",
+  },
+  sk: {
+    back: "← Späť do aplikácie", title: "Faktúra na úhradu",
+    f_company: "Firma / názov", f_reg: "IČO", f_vat: "IČ DPH",
+    f_address: "Adresa", f_months: "Obdobie (mesiace)", create: "Vytvoriť faktúru",
+    print: "Tlač / PDF", again: "Nová faktúra",
+    need_login: "Najprv sa prihláste do aplikácie, potom otvorte túto stránku.",
+    disabled: "Fakturácia nie je nastavená administrátorom.",
+    doc_title: "ZÁLOHOVÁ FAKTÚRA", supplier: "Dodávateľ", customer: "Odberateľ",
+    number: "Faktúra č.", vs: "Variabilný symbol", issued: "Dátum vystavenia",
+    due: "Splatnosť", reg: "IČO", vat: "IČ DPH",
+    desc: "Popis", qty: "Mes.", unit: "Cena/mes.", amount: "Suma",
+    total: "Spolu na úhradu", payment: "Platba",
+    transfer: "Bankový prevod (aj Wise)", bank: "Banka",
+    product: "Chasy — prístup k službe evidencie pracovného času",
+    hint: "Po úhrade pošlite potvrdenie — zašleme prístupový kód.",
+  },
+  en: {
+    back: "← Back to the app", title: "Invoice",
+    f_company: "Company / name", f_reg: "Reg. no.", f_vat: "VAT ID",
+    f_address: "Address", f_months: "Period (months)", create: "Create invoice",
+    print: "Print / PDF", again: "New invoice",
+    need_login: "Sign in to the app first, then open this page.",
+    disabled: "Invoicing is not configured by the administrator.",
+    doc_title: "PROFORMA INVOICE", supplier: "Supplier", customer: "Customer",
+    number: "Invoice no.", vs: "Payment reference", issued: "Issue date",
+    due: "Due date", reg: "Reg. no.", vat: "VAT ID",
+    desc: "Description", qty: "Mo.", unit: "Unit/mo", amount: "Amount",
+    total: "Total due", payment: "Payment",
+    transfer: "Bank transfer (incl. Wise)", bank: "Bank",
+    product: "Chasy — access to the work-time tracking service",
+    hint: "After payment, send the confirmation — we will e-mail the access code.",
+  },
+};
+
+let lang = "ru";
+try {
+  const s = localStorage.getItem("chasy_lang");
+  if (s && T[s]) lang = s;
+} catch (_) {}
+const tr = (k) => (T[lang] && T[lang][k]) || T.ru[k] || k;
+
+function applyStatic() {
+  document.documentElement.lang = lang;
+  document.title = "Chasy — " + tr("title");
+  document.querySelectorAll("[data-t]").forEach((el) => {
+    el.textContent = tr(el.dataset.t);
+  });
+}
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>]/g, (c) =>
+    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c])
+  );
+}
+function nl2br(s) { return esc(s).replace(/\n/g, "<br>"); }
+
+function renderDoc(inv) {
+  const s = inv.seller;
+  const b = inv.buyer;
+  const cur = inv.currency;
+  $("doc").innerHTML = `
+    <div class="head">
+      <div>
+        <div style="font-size:18px;font-weight:700">${tr("doc_title")}</div>
+        <div>${tr("number")} <code>${esc(inv.number)}</code></div>
+        <div class="muted">${tr("issued")}: ${esc(inv.issued_on)}
+          &nbsp;·&nbsp; ${tr("due")}: ${esc(inv.due_on || "")}</div>
+      </div>
+    </div>
+    <div class="parties">
+      <div class="party">
+        <h3>${tr("supplier")}</h3>
+        <div><strong>${esc(s.name)}</strong></div>
+        <div>${nl2br(s.address)}</div>
+        ${s.reg_id ? `<div>${tr("reg")}: ${esc(s.reg_id)}</div>` : ""}
+        ${s.vat_id ? `<div>${tr("vat")}: ${esc(s.vat_id)}</div>` : ""}
+        ${s.email ? `<div>${esc(s.email)}</div>` : ""}
+      </div>
+      <div class="party">
+        <h3>${tr("customer")}</h3>
+        <div><strong>${esc(b.name)}</strong></div>
+        <div>${nl2br(b.address)}</div>
+        ${b.reg_id ? `<div>${tr("reg")}: ${esc(b.reg_id)}</div>` : ""}
+        ${b.vat_id ? `<div>${tr("vat")}: ${esc(b.vat_id)}</div>` : ""}
+        ${b.email ? `<div>${esc(b.email)}</div>` : ""}
+      </div>
+    </div>
+    <table>
+      <thead><tr>
+        <th>${tr("desc")}</th>
+        <th class="num">${tr("qty")}</th>
+        <th class="num">${tr("unit")}</th>
+        <th class="num">${tr("amount")}</th>
+      </tr></thead>
+      <tbody><tr>
+        <td>${tr("product")}</td>
+        <td class="num">${inv.months}</td>
+        <td class="num">${esc(inv.unit_price)} ${esc(cur)}</td>
+        <td class="num">${esc(inv.amount)} ${esc(cur)}</td>
+      </tr></tbody>
+    </table>
+    <div class="total">${tr("total")}: ${esc(inv.amount)} ${esc(cur)}</div>
+    <div class="pay">
+      <h3 style="font-size:12px;text-transform:uppercase;color:#666">${tr("payment")}</h3>
+      <div>${tr("transfer")}</div>
+      <div>IBAN: <code>${esc(s.iban)}</code></div>
+      ${s.bank ? `<div>${tr("bank")}: ${esc(s.bank)}</div>` : ""}
+      <div>${tr("vs")}: <code>${esc(inv.variable_symbol)}</code></div>
+    </div>
+    ${inv.note ? `<p class="muted">${esc(inv.note)}</p>` : ""}
+    <p class="muted">${tr("hint")}</p>
+  `;
+  $("doc").hidden = false;
+  $("form-card").hidden = true;
+  $("print").hidden = false;
+  $("again").hidden = false;
+}
+
+async function boot() {
+  applyStatic();
+  const me = await fetch("/api/me", { credentials: "same-origin" });
+  if (!me.ok) { $("msg").textContent = tr("need_login"); $("msg").className = "msg err noprint"; return; }
+  const info = await fetch("/api/info", { credentials: "same-origin" }).then((r) => r.json());
+  if (!info.invoice_enabled) {
+    $("msg").textContent = tr("disabled"); $("msg").className = "msg err noprint"; return;
+  }
+  $("msg").textContent = "";
+  $("form-card").hidden = false;
+}
+
+$("create").onclick = async () => {
+  const name = $("f-company").value.trim();
+  if (!name) { $("f-company").focus(); return; }
+  $("create").disabled = true;
+  try {
+    const r = await fetch("/api/invoice", {
+      method: "POST",
+      credentials: "same-origin",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        buyer_name: name,
+        buyer_reg_id: $("f-reg").value.trim(),
+        buyer_vat_id: $("f-vat").value.trim(),
+        buyer_address: $("f-address").value.trim(),
+        months: Number($("f-months").value),
+      }),
+    });
+    if (!r.ok) { $("msg").textContent = "Error " + r.status; $("msg").className = "msg err noprint"; return; }
+    renderDoc(await r.json());
+  } finally {
+    $("create").disabled = false;
+  }
+};
+$("print").onclick = () => window.print();
+$("again").onclick = () => location.reload();
+
+boot();
+</script>
+</body>
+</html>

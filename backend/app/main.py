@@ -10,6 +10,7 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from . import invoice as inv
 from . import license as lic
 from . import models
 from .auth import (
@@ -158,6 +159,14 @@ class LicensePatch(BaseModel):
     note: str | None = None
 
 
+class InvoiceIn(BaseModel):
+    buyer_name: str
+    buyer_reg_id: str = ""
+    buyer_vat_id: str = ""
+    buyer_address: str = ""
+    months: int = 1
+
+
 # --------------------------------------------------------------------------- #
 # access control
 # --------------------------------------------------------------------------- #
@@ -302,6 +311,93 @@ def redeem(
     db.commit()
     db.refresh(user)
     return {"license": lic.license_state(user)}
+
+
+# --------------------------------------------------------------------------- #
+# pricing + proforma invoices
+# --------------------------------------------------------------------------- #
+@app.get("/api/info")
+def public_info():
+    return {
+        "price": settings.invoice_price,
+        "currency": settings.invoice_currency.upper(),
+        "currency_sign": inv.currency_sign(),
+        "invoice_enabled": inv.enabled(),
+    }
+
+
+def _invoice_public(row: models.Invoice) -> dict:
+    return {
+        "number": row.number,
+        "variable_symbol": row.variable_symbol,
+        "status": row.status,
+        "issued_on": row.issued_on.date().isoformat(),
+        "due_on": row.due_on.date().isoformat() if row.due_on else None,
+        "buyer": {
+            "name": row.buyer_name,
+            "reg_id": row.buyer_reg_id,
+            "vat_id": row.buyer_vat_id,
+            "address": row.buyer_address,
+            "email": row.user_email,
+        },
+        "months": row.months,
+        "unit_price": row.unit_price,
+        "amount": row.amount,
+        "currency": row.currency,
+        "seller": inv.seller_block(),
+        "note": settings.invoice_note,
+        "product": "Chasy — доступ к сервису",
+    }
+
+
+@app.post("/api/invoice")
+def create_invoice(
+    body: InvoiceIn,
+    user: models.User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if not inv.enabled():
+        raise HTTPException(status_code=404, detail="invoicing_disabled")
+    if not body.buyer_name.strip():
+        raise HTTPException(status_code=400, detail="buyer_name_required")
+
+    calc = inv.compute(body.months)
+    now = dt.datetime.now(dt.timezone.utc)
+    with engine.begin() as conn:
+        number, vs = inv.next_number(conn)
+
+    row = models.Invoice(
+        number=number,
+        variable_symbol=vs,
+        user_id=user.id,
+        user_email=user.email,
+        buyer_name=body.buyer_name.strip(),
+        buyer_reg_id=body.buyer_reg_id.strip(),
+        buyer_vat_id=body.buyer_vat_id.strip(),
+        buyer_address=body.buyer_address.strip(),
+        months=calc["months"],
+        unit_price=calc["unit_price"],
+        amount=calc["amount"],
+        currency=calc["currency"],
+        issued_on=now,
+        due_on=now + dt.timedelta(days=settings.invoice_due_days),
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _invoice_public(row)
+
+
+@app.get("/api/invoice/{number}")
+def get_invoice(
+    number: str,
+    user: models.User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    row = db.scalar(select(models.Invoice).where(models.Invoice.number == number))
+    if row is None or row.user_id != user.id:
+        raise HTTPException(status_code=404, detail="not_found")
+    return _invoice_public(row)
 
 
 # --------------------------------------------------------------------------- #
@@ -574,6 +670,28 @@ def admin_unbind_user(user_id: str, db: Session = Depends(get_db)):
     return Response(status_code=204)
 
 
+@app.get("/api/admin/invoices", dependencies=[Depends(require_admin)])
+def admin_list_invoices(db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(models.Invoice).order_by(models.Invoice.created_at.desc())
+    ).all()
+    return [
+        {
+            "number": r.number,
+            "variable_symbol": r.variable_symbol,
+            "user_email": r.user_email,
+            "buyer_name": r.buyer_name,
+            "months": r.months,
+            "amount": r.amount,
+            "currency": r.currency,
+            "status": r.status,
+            "issued_on": r.issued_on.date().isoformat(),
+            "due_on": r.due_on.date().isoformat() if r.due_on else None,
+        }
+        for r in rows
+    ]
+
+
 @app.get("/admin")
 def admin_page():
     return FileResponse(FRONTEND_DIR / "admin.html")
@@ -582,6 +700,11 @@ def admin_page():
 @app.get("/terms")
 def terms_page():
     return FileResponse(FRONTEND_DIR / "terms.html")
+
+
+@app.get("/invoice")
+def invoice_page():
+    return FileResponse(FRONTEND_DIR / "invoice.html")
 
 
 # --------------------------------------------------------------------------- #
