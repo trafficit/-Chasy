@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#1f6feb" />
+<link rel="manifest" href="/manifest.webmanifest" />
+<link rel="icon" href="/icon-192.png" />
+<link rel="apple-touch-icon" href="/icon-192.png" />
+<link rel="stylesheet" href="/style.css" />
+<title>WorkLog</title>
+</head>
+<body>
+
+<div id="toast" class="toast" hidden></div>
+
+<!-- ---------- login ---------- -->
+<section id="login" class="card" hidden>
+  <h1>WorkLog</h1>
+  <p class="muted">Введите рабочую почту — пришлём ссылку для входа.</p>
+  <form id="login-form">
+    <input id="login-email" type="email" inputmode="email" autocomplete="email"
+           placeholder="you@company.com" required />
+    <button type="submit">Получить ссылку</button>
+  </form>
+  <p id="login-sent" class="ok" hidden>
+    Письмо отправлено. Откройте ссылку из письма на этом устройстве.
+  </p>
+</section>
+
+<!-- ---------- app ---------- -->
+<main id="app" hidden>
+  <header class="app-bar">
+    <strong>WorkLog</strong>
+    <span class="spacer"></span>
+    <span id="who" class="muted"></span>
+    <button id="logout" class="link">выйти</button>
+  </header>
+
+  <section class="card">
+    <div class="grid">
+      <label>Дата
+        <input id="f-date" type="date" />
+      </label>
+      <label>Начало
+        <input id="f-start" type="time" />
+      </label>
+      <label>Конец
+        <input id="f-end" type="time" />
+      </label>
+      <label>Обед (мин или Ч:ММ)
+        <input id="f-lunch" type="text" inputmode="numeric" placeholder="30" />
+      </label>
+      <label class="wide">Комментарий
+        <input id="f-comment" type="text" placeholder="заметка" />
+      </label>
+    </div>
+    <div class="row">
+      <button id="add">Добавить</button>
+      <button id="holiday" class="ghost">Выходной</button>
+      <button id="save-edit" class="ghost" hidden>Сохранить изменения</button>
+      <button id="cancel-edit" class="link" hidden>отмена</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <ul id="list" class="list"></ul>
+    <p id="empty" class="muted" hidden>Пока нет записей.</p>
+    <div class="total" id="total">Net Total: 0 hours and 0 minutes</div>
+    <div class="row">
+      <button id="up" class="ghost" disabled>⬆ Выше</button>
+      <button id="down" class="ghost" disabled>⬇ Ниже</button>
+      <button id="edit" class="ghost" disabled>✏️ Изменить</button>
+      <button id="del" class="ghost danger" disabled>🗑 Удалить</button>
+    </div>
+    <div class="row">
+      <button id="export">Экспорт в Excel</button>
+      <button id="import-btn" class="ghost">Импорт из Excel</button>
+      <input id="import-file" type="file" accept=".xlsx" hidden />
+    </div>
+  </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>
