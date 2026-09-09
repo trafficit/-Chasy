@@ -60,9 +60,11 @@
   <div id="msg" class="muted"></div>
 
   <section id="auth" class="card">
-    <label>Админ-токен (переменная <code>ADMIN_TOKEN</code>)</label>
     <div class="row">
-      <div style="flex:3"><input id="token" type="password" autocomplete="off" /></div>
+      <div><label>Логин</label>
+        <input id="user" type="text" autocomplete="username" placeholder="wizard" /></div>
+      <div style="flex:3"><label>Пароль (<code>ADMIN_TOKEN</code>)</label>
+        <input id="token" type="password" autocomplete="current-password" /></div>
       <div style="flex:0"><button id="token-save">Войти</button></div>
     </div>
   </section>
@@ -114,7 +116,11 @@
 "use strict";
 const $ = (id) => document.getElementById(id);
 let TOKEN = "";
-try { TOKEN = localStorage.getItem("chasy_admin_token") || ""; } catch (_) {}
+let USER = "";
+try {
+  TOKEN = localStorage.getItem("chasy_admin_token") || "";
+  USER = localStorage.getItem("chasy_admin_user") || "";
+} catch (_) {}
 
 function msg(text, cls) {
   const m = $("msg");
@@ -125,10 +131,14 @@ function msg(text, cls) {
 async function api(path, opts = {}) {
   const r = await fetch(path, {
     ...opts,
-    headers: { "X-Admin-Token": TOKEN, ...(opts.headers || {}) },
+    headers: {
+      "X-Admin-Token": TOKEN,
+      "X-Admin-User": USER,
+      ...(opts.headers || {}),
+    },
   });
   if (r.status === 401) {
-    showAuth("Неверный токен");
+    showAuth("Неверный логин или пароль");
     throw new Error("unauthorized");
   }
   if (r.status === 404) {
@@ -263,19 +273,31 @@ function enter() {
 
 $("token-save").onclick = () => {
   TOKEN = $("token").value.trim();
-  try { localStorage.setItem("chasy_admin_token", TOKEN); } catch (_) {}
+  USER = $("user").value.trim();
+  try {
+    localStorage.setItem("chasy_admin_token", TOKEN);
+    localStorage.setItem("chasy_admin_user", USER);
+  } catch (_) {}
   if (TOKEN) enter();
 };
 $("logout").onclick = () => {
   TOKEN = "";
-  try { localStorage.removeItem("chasy_admin_token"); } catch (_) {}
+  USER = "";
+  try {
+    localStorage.removeItem("chasy_admin_token");
+    localStorage.removeItem("chasy_admin_user");
+  } catch (_) {}
   showAuth("");
   msg("");
 };
 $("reload").onclick = () => loadAll().catch(() => {});
 $("create").onclick = createLicense;
 
-if (TOKEN) { $("token").value = TOKEN; enter(); } else showAuth("");
+if (TOKEN) {
+  $("token").value = TOKEN;
+  $("user").value = USER;
+  enter();
+} else showAuth("");
 </script>
 </body>
 </html>

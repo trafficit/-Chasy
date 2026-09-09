@@ -27,7 +27,9 @@ class Settings(BaseSettings):
     # licensing (model A: access codes with expiry)
     # empty -> licensing disabled, everyone can use the app freely
     license_required: bool = False
-    # token that unlocks the /admin panel; empty -> admin panel disabled
+    # credentials for the /admin panel; empty admin_token -> panel disabled.
+    # admin_user is optional: set it to also require a login name.
+    admin_user: str = ""
     admin_token: str = ""
     # free trial (days) granted to a brand-new account before a code is needed;
     # 0 -> no trial, a code is required immediately

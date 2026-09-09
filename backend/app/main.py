@@ -157,11 +157,17 @@ def require_writable(user: models.User = Depends(current_user)) -> models.User:
     return user
 
 
-def require_admin(x_admin_token: str = Header(default="")) -> None:
+def require_admin(
+    x_admin_token: str = Header(default=""),
+    x_admin_user: str = Header(default=""),
+) -> None:
     if not settings.admin_token:
         raise HTTPException(status_code=404, detail="Admin panel is disabled.")
-    if not secrets.compare_digest(x_admin_token, settings.admin_token):
-        raise HTTPException(status_code=401, detail="Bad admin token.")
+    ok = secrets.compare_digest(x_admin_token, settings.admin_token)
+    if settings.admin_user:
+        ok = ok and secrets.compare_digest(x_admin_user, settings.admin_user)
+    if not ok:
+        raise HTTPException(status_code=401, detail="Bad admin credentials.")
 
 
 def _license_public(lc: models.License, users_count: int) -> dict:
