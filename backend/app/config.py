@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     # security / session
     secret_key: str = "change-me-please"
     base_url: str = "http://localhost:8000"
-    session_days: int = 30
+    session_days: int = 90
     magic_link_ttl_minutes: int = 20
 
     # e-mail (magic link)

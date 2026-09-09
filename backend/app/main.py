@@ -104,6 +104,20 @@ _seed_promo_codes()
 
 app = FastAPI(title="Chasy")
 
+
+@app.middleware("http")
+async def revalidate_shell(request: Request, call_next):
+    """Force the browser to revalidate HTML/JS/CSS so a deploy is picked up
+    immediately (no stale assets from the HTTP cache)."""
+    response = await call_next(request)
+    path = request.url.path
+    if path == "/" or path.endswith(
+        (".html", ".js", ".css", ".webmanifest")
+    ):
+        response.headers["Cache-Control"] = "no-cache"
+    return response
+
+
 def _find_frontend() -> Path:
     import os
 
