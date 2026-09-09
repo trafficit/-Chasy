@@ -4,6 +4,7 @@ from io import BytesIO
 from pathlib import Path
 
 from fastapi import (
+    BackgroundTasks,
     Depends,
     FastAPI,
     File,
@@ -270,7 +271,10 @@ def _license_public(lc: models.License, users_count: int) -> dict:
 # --------------------------------------------------------------------------- #
 @app.post("/api/auth/request")
 async def auth_request(
-    body: EmailIn, request: Request, db: Session = Depends(get_db)
+    body: EmailIn,
+    request: Request,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
 ):
     # honeypot: a bot filled the hidden field -> look successful, do nothing
     if body.honeypot_filled():
@@ -324,7 +328,8 @@ async def auth_request(
     )
     db.commit()
     link = f"{settings.base_url.rstrip('/')}/api/auth/callback?token={raw}"
-    await send_magic_link(email, link)
+    # send in the background so a slow SMTP server never blocks the response
+    background.add_task(send_magic_link, email, link)
     return {"ok": True}
 
 
