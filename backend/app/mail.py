@@ -5,10 +5,10 @@ from .config import settings
 
 
 async def send_magic_link(to_email: str, link: str) -> None:
-    subject = "Вход в WorkLog"
+    subject = "Вход в Chasy"
     body = (
         "Здравствуйте!\n\n"
-        "Чтобы войти в WorkLog, откройте эту ссылку "
+        "Чтобы войти в Chasy, откройте эту ссылку "
         f"(действует {settings.magic_link_ttl_minutes} мин.):\n\n"
         f"{link}\n\n"
         "Если вы не запрашивали вход — просто проигнорируйте это письмо.\n"

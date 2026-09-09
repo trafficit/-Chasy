@@ -75,6 +75,7 @@ input {
   width: 100%;
 }
 input:focus { outline: 2px solid var(--accent); outline-offset: 0; }
+input[readonly] { opacity: .85; cursor: default; }
 
 .row {
   display: flex;

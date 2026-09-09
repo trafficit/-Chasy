@@ -7,6 +7,8 @@ const api = (path, opts) =>
 let entries = [];
 let selectedId = null;
 let editingId = null;
+let currentEmail = "";
+let addBusy = false;
 
 // --------------------------------------------------------------------------- //
 // helpers
@@ -59,13 +61,16 @@ function render() {
     const bits = [];
     if (lunchShown && e.lunch) bits.push(`Обед ${e.lunch}`);
     if (lunchShown) bits.push(`Net ${e.net}`);
-    if (e.comment) bits.push(`✎ ${e.comment}`);
+    if (currentEmail) bits.push(`🏷️ ${currentEmail}`);
+    if (e.comment && e.comment !== currentEmail) bits.push(`✎ ${e.comment}`);
     sub.textContent = bits.join("   ·   ");
 
     li.append(main, sub);
-    li.addEventListener("click", () => {
-      selectedId = selectedId === e.id ? null : e.id;
-      render();
+    li.addEventListener("click", () => selectEntry(e.id));
+    li.addEventListener("dblclick", (ev) => {
+      // Double-click only selects — it must not copy the row back into the add form.
+      ev.preventDefault();
+      selectEntry(e.id, { keepSelection: true });
     });
     list.append(li);
   }
@@ -109,19 +114,53 @@ function clearForm() {
   ["f-date", "f-start", "f-end", "f-lunch", "f-comment"].forEach(
     (id) => ($(id).value = "")
   );
+  if ($("f-email")) $("f-email").value = currentEmail;
+}
+
+function selectEntry(id, { keepSelection = false } = {}) {
+  // Saved rows are only loaded into the form via «Изменить». A second tap
+  // must not copy the row back into the add form (that created duplicates).
+  if (editingId === id) {
+    selectedId = id;
+    render();
+    return;
+  }
+  if (editingId) stopEdit();
+  if (keepSelection) selectedId = id;
+  else selectedId = selectedId === id ? null : id;
+  render();
+}
+
+function sameSlot(a, b) {
+  return a.date === b.date && a.start === b.start && a.end === b.end;
 }
 
 async function addEntry() {
+  if (editingId || addBusy) return;
   const body = formPayload();
   if (!body.date) return toast("Укажите дату");
-  const r = await api("/api/entries", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  if (!r.ok) return toast((await r.json()).detail || "Ошибка");
-  clearForm();
-  await load();
+  const dup = entries.find((e) => sameSlot(e, body));
+  if (dup) {
+    toast("Такая запись уже есть");
+    selectedId = dup.id;
+    render();
+    return;
+  }
+  addBusy = true;
+  $("add").disabled = true;
+  try {
+    const r = await api("/api/entries", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) return toast((await r.json()).detail || "Ошибка");
+    clearForm();
+    await load();
+  } finally {
+    addBusy = false;
+    $("add").disabled = false;
+  }
 }
 
 async function addHoliday() {
@@ -144,7 +183,8 @@ function startEdit() {
   $("f-start").value = /^\d{2}:\d{2}$/.test(e.start) ? e.start : "";
   $("f-end").value = /^\d{2}:\d{2}$/.test(e.end) ? e.end : "";
   $("f-lunch").value = e.lunch || "";
-  $("f-comment").value = e.comment || "";
+  $("f-email").value = currentEmail;
+  $("f-comment").value = e.comment === currentEmail ? "" : e.comment || "";
   $("add").hidden = true;
   $("holiday").hidden = true;
   $("save-edit").hidden = false;
@@ -214,9 +254,11 @@ function showLogin() {
 }
 
 async function showApp(email) {
+  currentEmail = email;
   $("login").hidden = true;
   $("app").hidden = false;
   $("who").textContent = email;
+  $("f-email").value = email;
   await load();
 }
 
