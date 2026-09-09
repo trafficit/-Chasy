@@ -34,6 +34,10 @@
     Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал,
     экспорт и импорт Excel.
   </p>
+  <p id="about-price"></p>
+  <p class="muted">
+    <a href="/terms" target="_blank" rel="noopener" data-i18n="about_terms">Условия использования</a>
+  </p>
   <p class="muted">
     <span data-i18n="about_contact">Связь</span>:
     <a id="about-contact-link" href="mailto:trafficit365@gmail.com">trafficit365@gmail.com</a>
@@ -63,6 +67,13 @@
   <form id="license-form">
     <input id="license-code" type="text" autocomplete="off" spellcheck="false"
            placeholder="CHASY-XXXX-XXXX" />
+    <label class="check">
+      <input id="license-tos" type="checkbox" />
+      <span>
+        <span data-i18n="lic_tos_label">Я принимаю</span>
+        <a href="/terms" target="_blank" rel="noopener" data-i18n="lic_tos_link">условия использования</a>
+      </span>
+    </label>
     <button type="submit" data-i18n="lic_redeem">Активировать</button>
   </form>
 </section>

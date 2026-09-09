@@ -88,6 +88,7 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 #about h2 { margin: 0 0 8px; font-size: 18px; }
 #about h2 .brand { font-size: 18px; }
 #about p { margin: 8px 0; }
+#about #about-price { font-size: 13px; color: var(--muted); }
 #about a { color: var(--accent); }
 #about form { margin-top: 14px; }
 #about form button { width: 100%; }
@@ -155,6 +156,16 @@ button:disabled { opacity: .4; cursor: default; }
 
 #license-gate h2 { font-size: 18px; margin: 0 0 4px; }
 #license-code { letter-spacing: .04em; }
+
+label.check {
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--ink);
+}
+label.check input { width: auto; margin-top: 2px; flex: 0 0 auto; }
+label.check a { color: var(--accent); }
 
 .banner {
   border: 1px solid var(--line);

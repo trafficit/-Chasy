@@ -40,6 +40,8 @@ class Settings(BaseSettings):
     # comma-separated codes that are always valid: seeded on startup as
     # never-expiring, unlimited-seat licenses. e.g. "MayDay2027"
     promo_codes: str = ""
+    # bump when the /terms text changes; stored per user on acceptance
+    tos_version: str = "2026-09-09"
 
 
 settings = Settings()

@@ -43,6 +43,7 @@ services:
       TRIAL_DAYS: ${TRIAL_DAYS:-0}
       FREE_EMAIL_DOMAINS: ${FREE_EMAIL_DOMAINS:-}
       PROMO_CODES: ${PROMO_CODES:-}
+      TOS_VERSION: ${TOS_VERSION:-2026-09-09}
     expose:
       - "8000"
 

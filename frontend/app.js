@@ -5,6 +5,8 @@ const api = (path, opts) =>
   fetch(path, { credentials: "same-origin", ...opts });
 
 const APP_VERSION = "1.0";
+// shown in the About dialog; change the number here only
+const APP_PRICE = "7 €";
 
 let entries = [];
 let selectedId = null;
@@ -66,6 +68,11 @@ const I18N = {
     lic_banner_revoked: "Код доступа отключён. Свяжитесь с администратором:",
     lic_banner_trial: "Пробный период до {date}.",
     lic_banner_soon: "Доступ действует до {date}.",
+    lic_tos_label: "Я принимаю",
+    lic_tos_link: "условия использования",
+    lic_tos_required: "Примите условия использования",
+    about_terms: "Условия использования",
+    about_price: "{price}/мес за компанию · 14 дней бесплатно · продление автоматическое, отмена в любой момент",
   },
   uk: {
     logout: "вийти",
@@ -118,6 +125,11 @@ const I18N = {
     lic_banner_revoked: "Код доступу вимкнено. Зв'яжіться з адміністратором:",
     lic_banner_trial: "Пробний період до {date}.",
     lic_banner_soon: "Доступ діє до {date}.",
+    lic_tos_label: "Я приймаю",
+    lic_tos_link: "умови використання",
+    lic_tos_required: "Прийміть умови використання",
+    about_terms: "Умови використання",
+    about_price: "{price}/міс за компанію · 14 днів безкоштовно · продовження автоматичне, скасування будь-коли",
   },
   sk: {
     logout: "odhlásiť",
@@ -170,6 +182,11 @@ const I18N = {
     lic_banner_revoked: "Prístupový kód je vypnutý. Kontaktujte správcu:",
     lic_banner_trial: "Skúšobné obdobie do {date}.",
     lic_banner_soon: "Prístup platí do {date}.",
+    lic_tos_label: "Súhlasím s",
+    lic_tos_link: "podmienkami používania",
+    lic_tos_required: "Potvrďte podmienky používania",
+    about_terms: "Podmienky používania",
+    about_price: "{price}/mes. za firmu · 14 dní zdarma · automatické obnovenie, zrušenie kedykoľvek",
   },
   en: {
     logout: "sign out",
@@ -222,6 +239,11 @@ const I18N = {
     lic_banner_revoked: "Access code is disabled. Contact the administrator:",
     lic_banner_trial: "Trial period until {date}.",
     lic_banner_soon: "Access valid until {date}.",
+    lic_tos_label: "I accept the",
+    lic_tos_link: "terms of use",
+    lic_tos_required: "Please accept the terms of use",
+    about_terms: "Terms of use",
+    about_price: "{price}/mo per company · 14 days free · renews automatically, cancel any time",
   },
 };
 
@@ -265,6 +287,8 @@ function applyI18n() {
   if (ab) ab.title = t("about");
   const ver = $("about-version");
   if (ver) ver.textContent = "v" + APP_VERSION;
+  const price = $("about-price");
+  if (price) price.textContent = t("about_price", { price: APP_PRICE });
   applyLicense();
 }
 
@@ -382,10 +406,11 @@ async function redeemCode(ev) {
   ev.preventDefault();
   const code = $("license-code").value.trim();
   if (!code) return;
+  if (!$("license-tos").checked) return toast(t("lic_tos_required"));
   const r = await api("/api/license/redeem", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ code }),
+    body: JSON.stringify({ code, accept_terms: true }),
   });
   if (!r.ok) {
     let key = "err_generic";
@@ -395,6 +420,7 @@ async function redeemCode(ev) {
         revoked_code: "lic_err_revoked_code",
         expired_code: "lic_err_expired_code",
         seats_full: "lic_err_seats_full",
+        terms_not_accepted: "lic_tos_required",
       };
       key = map[(await r.json()).detail] || "err_generic";
     } catch (_) {}

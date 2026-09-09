@@ -33,6 +33,18 @@ def _migrate() -> None:
         conn.execute(
             text("ALTER TABLE users ADD COLUMN IF NOT EXISTS license_id VARCHAR")
         )
+        conn.execute(
+            text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
+                "tos_accepted_at TIMESTAMPTZ"
+            )
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
+                "tos_version VARCHAR DEFAULT ''"
+            )
+        )
 
 
 def _seed_promo_codes() -> None:
@@ -125,6 +137,7 @@ class ReorderIn(BaseModel):
 
 class RedeemIn(BaseModel):
     code: str
+    accept_terms: bool = False
 
 
 class LicenseIn(BaseModel):
@@ -259,6 +272,9 @@ def redeem(
     user: models.User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
+    if not body.accept_terms:
+        raise HTTPException(status_code=400, detail="terms_not_accepted")
+
     code = body.code.strip()
     lc = db.scalar(
         select(models.License).where(func.upper(models.License.code) == code.upper())
@@ -281,6 +297,8 @@ def redeem(
             raise HTTPException(status_code=403, detail="seats_full")
 
     user.license_id = lc.id
+    user.tos_accepted_at = dt.datetime.now(dt.timezone.utc)
+    user.tos_version = settings.tos_version
     db.commit()
     db.refresh(user)
     return {"license": lic.license_state(user)}
@@ -559,6 +577,11 @@ def admin_unbind_user(user_id: str, db: Session = Depends(get_db)):
 @app.get("/admin")
 def admin_page():
     return FileResponse(FRONTEND_DIR / "admin.html")
+
+
+@app.get("/terms")
+def terms_page():
+    return FileResponse(FRONTEND_DIR / "terms.html")
 
 
 # --------------------------------------------------------------------------- #

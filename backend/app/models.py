@@ -25,6 +25,10 @@ class User(Base):
         ForeignKey("licenses.id", ondelete="SET NULL"), nullable=True, index=True
     )
     license: Mapped["License | None"] = relationship(lazy="joined")
+    tos_accepted_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    tos_version: Mapped[str] = mapped_column(String, default="")
 
 
 class License(Base):
