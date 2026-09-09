@@ -20,6 +20,11 @@ const I18N = {
     login_hint: "Введите рабочую почту — пришлём ссылку для входа.",
     login_btn: "Получить ссылку",
     login_sent: "Письмо отправлено. Откройте ссылку из письма на этом устройстве.",
+    hero_title: "Chasy — учёт рабочих часов команды",
+    hero_sub: "Каждый ведёт свой журнал смен, часы считаются автоматически.",
+    hero_f1: "Журнал смен · авто-подсчёт часов и обеда",
+    hero_f2: "У каждого свой лог · вход по ссылке из письма, без пароля",
+    hero_f3: "Экспорт и импорт Excel · работает с телефона",
     f_date: "Дата",
     f_start: "Начало",
     f_end: "Конец",
@@ -79,6 +84,11 @@ const I18N = {
     login_hint: "Введіть робочу пошту — надішлемо посилання для входу.",
     login_btn: "Отримати посилання",
     login_sent: "Лист надіслано. Відкрийте посилання з листа на цьому пристрої.",
+    hero_title: "Chasy — облік робочих годин команди",
+    hero_sub: "Кожен веде свій журнал змін, години рахуються автоматично.",
+    hero_f1: "Журнал змін · авто-підрахунок годин і обіду",
+    hero_f2: "У кожного свій лог · вхід за посиланням з листа, без пароля",
+    hero_f3: "Експорт та імпорт Excel · працює з телефона",
     f_date: "Дата",
     f_start: "Початок",
     f_end: "Кінець",
@@ -138,6 +148,11 @@ const I18N = {
     login_hint: "Zadajte pracovný e-mail — pošleme odkaz na prihlásenie.",
     login_btn: "Získať odkaz",
     login_sent: "E-mail odoslaný. Otvorte odkaz z e-mailu na tomto zariadení.",
+    hero_title: "Chasy — evidencia pracovného času tímu",
+    hero_sub: "Každý si vedie svoj denník zmien, hodiny sa počítajú automaticky.",
+    hero_f1: "Denník zmien · automatický výpočet hodín a obeda",
+    hero_f2: "Každý má vlastný denník · prihlásenie cez odkaz v e-maile, bez hesla",
+    hero_f3: "Export a import Excelu · funguje z telefónu",
     f_date: "Dátum",
     f_start: "Začiatok",
     f_end: "Koniec",
@@ -197,6 +212,11 @@ const I18N = {
     login_hint: "Enter your work e-mail — we'll send a sign-in link.",
     login_btn: "Send link",
     login_sent: "E-mail sent. Open the link from the message on this device.",
+    hero_title: "Chasy — team work-hours tracking",
+    hero_sub: "Everyone keeps their own shift log; hours are totalled automatically.",
+    hero_f1: "Shift log · automatic hours & lunch totals",
+    hero_f2: "Everyone has their own log · sign in via an e-mail link, no password",
+    hero_f3: "Excel export & import · works from your phone",
     f_date: "Date",
     f_start: "Start",
     f_end: "End",
@@ -340,6 +360,13 @@ function dotsToIso(dots) {
 function minutes(hhmm) {
   const m = String(hhmm).match(/^(\d+):(\d+)$/);
   return m ? +m[1] * 60 + +m[2] : 0;
+}
+
+// 24h time mask: digits only -> "HH:MM" as you type
+function timeMask(el) {
+  let d = el.value.replace(/\D/g, "").slice(0, 4);
+  if (d.length === 1 && +d > 2) d = "0" + d;
+  el.value = d.length >= 3 ? d.slice(0, 2) + ":" + d.slice(2) : d;
 }
 
 function fmtDate(iso) {
@@ -607,8 +634,8 @@ function startEdit() {
   if (!e) return;
   editingId = e.id;
   $("f-date").value = dotsToIso(e.date);
-  $("f-start").value = /^\d{2}:\d{2}$/.test(e.start) ? e.start : "";
-  $("f-end").value = /^\d{2}:\d{2}$/.test(e.end) ? e.end : "";
+  $("f-start").value = /^\d{1,2}:\d{2}$/.test(e.start) ? e.start : "";
+  $("f-end").value = /^\d{1,2}:\d{2}$/.test(e.end) ? e.end : "";
   $("f-lunch").value = e.lunch || "";
   $("f-comment").value = e.comment || "";
   $("add").hidden = true;
@@ -744,6 +771,9 @@ $("up").addEventListener("click", () => move(-1));
 $("down").addEventListener("click", () => move(1));
 $("export").addEventListener("click", () => (location.href = "/api/export.xlsx"));
 $("import-btn").addEventListener("click", () => $("import-file").click());
+$("f-start").addEventListener("input", (ev) => timeMask(ev.target));
+$("f-end").addEventListener("input", (ev) => timeMask(ev.target));
+
 $("import-file").addEventListener("change", (ev) => {
   if (ev.target.files[0]) importFile(ev.target.files[0]);
   ev.target.value = "";

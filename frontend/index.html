@@ -51,18 +51,31 @@
 </dialog>
 
 <!-- ---------- login ---------- -->
-<section id="login" class="card" hidden>
-  <p class="muted" data-i18n="login_hint">Введите рабочую почту — пришлём ссылку для входа.</p>
-  <form id="login-form">
-    <input id="login-email" type="email" inputmode="email" autocomplete="email"
-           placeholder="you@company.com" required />
-    <input id="hp-website" class="hp" type="text" name="website" tabindex="-1"
-           autocomplete="off" aria-hidden="true" />
-    <button type="submit" data-i18n="login_btn">Получить ссылку</button>
-  </form>
-  <p id="login-sent" class="ok" hidden data-i18n="login_sent">
-    Письмо отправлено. Откройте ссылку из письма на этом устройстве.
-  </p>
+<section id="login" hidden>
+  <div class="hero">
+    <h1 data-i18n="hero_title">Chasy — учёт рабочих часов команды</h1>
+    <p data-i18n="hero_sub">
+      Каждый сотрудник ведёт свой журнал смен, часы считаются автоматически.
+    </p>
+    <ul class="hero-list">
+      <li data-i18n="hero_f1">Журнал смен · авто-подсчёт часов и обеда</li>
+      <li data-i18n="hero_f2">У каждого свой лог · вход по ссылке из письма, без пароля</li>
+      <li data-i18n="hero_f3">Экспорт и импорт Excel · работает с телефона</li>
+    </ul>
+  </div>
+  <div class="card">
+    <p class="muted" data-i18n="login_hint">Введите рабочую почту — пришлём ссылку для входа.</p>
+    <form id="login-form">
+      <input id="login-email" type="email" inputmode="email" autocomplete="email"
+             placeholder="you@company.com" required />
+      <input id="hp-website" class="hp" type="text" name="website" tabindex="-1"
+             autocomplete="off" aria-hidden="true" />
+      <button type="submit" data-i18n="login_btn">Получить ссылку</button>
+    </form>
+    <p id="login-sent" class="ok" hidden data-i18n="login_sent">
+      Письмо отправлено. Откройте ссылку из письма на этом устройстве.
+    </p>
+  </div>
 </section>
 
 <!-- ---------- access code gate ---------- -->
@@ -92,10 +105,12 @@
         <input id="f-date" type="date" />
       </label>
       <label><span data-i18n="f_start">Начало</span>
-        <input id="f-start" type="time" />
+        <input id="f-start" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="09:00" maxlength="5" />
       </label>
       <label><span data-i18n="f_end">Конец</span>
-        <input id="f-end" type="time" />
+        <input id="f-end" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="17:30" maxlength="5" />
       </label>
       <label><span data-i18n="f_lunch">Обед (мин или Ч:ММ)</span>
         <input id="f-lunch" type="text" inputmode="numeric" placeholder="30" />
