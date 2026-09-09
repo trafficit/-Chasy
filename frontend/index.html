@@ -8,7 +8,7 @@
 <link rel="icon" href="/icon-192.png" />
 <link rel="apple-touch-icon" href="/icon-192.png" />
 <link rel="stylesheet" href="/style.css" />
-<title>WorkLog</title>
+<title>Chasy</title>
 </head>
 <body>
 
@@ -16,7 +16,7 @@
 
 <!-- ---------- login ---------- -->
 <section id="login" class="card" hidden>
-  <h1>WorkLog</h1>
+  <h1>Chasy</h1>
   <p class="muted">Введите рабочую почту — пришлём ссылку для входа.</p>
   <form id="login-form">
     <input id="login-email" type="email" inputmode="email" autocomplete="email"
@@ -31,7 +31,7 @@
 <!-- ---------- app ---------- -->
 <main id="app" hidden>
   <header class="app-bar">
-    <strong>WorkLog</strong>
+    <strong>Chasy</strong>
     <span class="spacer"></span>
     <span id="who" class="muted"></span>
     <button id="logout" class="link">выйти</button>
@@ -50,6 +50,9 @@
       </label>
       <label>Обед (мин или Ч:ММ)
         <input id="f-lunch" type="text" inputmode="numeric" placeholder="30" />
+      </label>
+      <label class="wide">Email
+        <input id="f-email" type="email" readonly tabindex="-1" />
       </label>
       <label class="wide">Комментарий
         <input id="f-comment" type="text" placeholder="заметка" />

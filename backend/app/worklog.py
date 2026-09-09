@@ -81,33 +81,41 @@ def compute(date: str, start: str, end: str, lunch: str, comment: str) -> dict:
     }
 
 
-def build_xlsx(entries) -> bytes:
+def build_xlsx(entries, email: str = "") -> bytes:
     wb = Workbook()
     ws = wb.active
     ws.title = "Worklog"
 
     lunch_present = any(e.lunch and "Holiday" not in e.date for e in entries)
     if lunch_present:
-        headers = ["Date", "Start", "End", "Duration", "Lunch", "Net Duration", "Comment"]
+        headers = [
+            "Date", "Start", "End", "Duration", "Lunch", "Net Duration", "Email", "Comment",
+        ]
     else:
-        headers = ["Date", "Start", "End", "Duration", "Net Duration", "Comment"]
+        headers = [
+            "Date", "Start", "End", "Duration", "Net Duration", "Email", "Comment",
+        ]
     ws.append(headers)
     for cell in ws[1]:
         cell.font = Font(bold=True)
 
     for e in entries:
+        row_email = email or ""
+        comment = e.comment if e.comment != row_email else ""
         if lunch_present:
-            ws.append([e.date, e.start, e.end, e.duration, e.lunch, e.net, e.comment])
+            ws.append(
+                [e.date, e.start, e.end, e.duration, e.lunch, e.net, row_email, comment]
+            )
         else:
-            ws.append([e.date, e.start, e.end, e.duration, e.net, e.comment])
+            ws.append([e.date, e.start, e.end, e.duration, e.net, row_email, comment])
 
     ws.append([])
     total_minutes = sum(parse_hhmm_to_minutes(e.net) for e in entries)
     total_str = f"{total_minutes // 60}:{total_minutes % 60:02d}"
     if lunch_present:
-        ws.append(["▶ Net Total", "", "", "", "", total_str, ""])
+        ws.append(["▶ Net Total", "", "", "", "", total_str, "", ""])
     else:
-        ws.append(["▶ Net Total", "", "", "", total_str, ""])
+        ws.append(["▶ Net Total", "", "", "", total_str, "", ""])
 
     buf = BytesIO()
     wb.save(buf)
@@ -132,6 +140,7 @@ def parse_xlsx(data: bytes) -> list[dict]:
     i_end = col("end")
     i_lunch = col("lunch")
     i_comment = col("comment")
+    i_email = col("email")
 
     def get(row, i):
         if i is None or i >= len(row) or row[i] is None:
@@ -147,13 +156,17 @@ def parse_xlsx(data: bytes) -> list[dict]:
             continue
         if str(raw_date).startswith("▶"):
             continue
+        comment = str(get(row, i_comment) or "")
+        email = str(get(row, i_email) or "")
+        if email and not comment:
+            comment = email
         out.append(
             {
                 "date": str(raw_date).strip(),
                 "start": str(get(row, i_start) or "00:00"),
                 "end": str(get(row, i_end) or "00:00"),
                 "lunch": str(get(row, i_lunch) or ""),
-                "comment": str(get(row, i_comment) or ""),
+                "comment": comment,
             }
         )
     return out

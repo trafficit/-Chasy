@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     smtp_port: int = 587
     smtp_user: str = ""
     smtp_password: str = ""
-    smtp_from: str = "Worklog <no-reply@example.com>"
+    smtp_from: str = "Chasy <no-reply@example.com>"
     smtp_starttls: bool = True
 
     # if true (or SMTP not configured) the magic link is also printed to the log
