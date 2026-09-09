@@ -769,23 +769,24 @@ $("login-form").addEventListener("submit", async (ev) => {
 });
 
 function lockSendButton(seconds) {
+  lockSendButton._until = Date.now() + Math.max(1, seconds) * 1000;
   const btn = $("login-send");
   const base = t("login_btn");
-  let left = Math.max(1, Math.round(seconds));
-  btn.disabled = true;
   const render = () => {
-    btn.textContent = left > 0 ? `${base} · ${left}` : base;
+    const left = Math.ceil((lockSendButton._until - Date.now()) / 1000);
+    if (left <= 0) {
+      clearInterval(lockSendButton._t);
+      lockSendButton._t = null;
+      btn.disabled = false;
+      btn.textContent = base;
+    } else {
+      btn.disabled = true;
+      btn.textContent = `${base} · ${left}`;
+    }
   };
   render();
   clearInterval(lockSendButton._t);
-  lockSendButton._t = setInterval(() => {
-    left -= 1;
-    if (left <= 0) {
-      clearInterval(lockSendButton._t);
-      btn.disabled = false;
-    }
-    render();
-  }, 1000);
+  lockSendButton._t = setInterval(render, 500);
 }
 
 $("logout").addEventListener("click", async () => {
