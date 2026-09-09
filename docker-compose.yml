@@ -1,17 +1,21 @@
-name: worklog
+name: chasy
+
+# Chasy runs behind an existing reverse proxy (Caddy / nginx / Traefik).
+# The app is published only on 127.0.0.1:${APP_PORT}; the proxy terminates
+# TLS and forwards to it. See deploy/chasy.caddy for the Caddy snippet.
 
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: worklog
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-worklog}
-      POSTGRES_DB: worklog
+      POSTGRES_USER: chasy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: chasy
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U worklog"]
+      test: ["CMD-SHELL", "pg_isready -U chasy"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,7 +29,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg2://worklog:${POSTGRES_PASSWORD:-worklog}@db:5432/worklog
+      DATABASE_URL: postgresql+psycopg2://chasy:${POSTGRES_PASSWORD}@db:5432/chasy
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
       BASE_URL: ${BASE_URL:?set BASE_URL in .env}
       SESSION_DAYS: ${SESSION_DAYS:-30}
@@ -59,25 +63,8 @@ services:
       SELLER_IBAN: ${SELLER_IBAN:-}
       SELLER_BANK: ${SELLER_BANK:-}
       SELLER_EMAIL: ${SELLER_EMAIL:-}
-    expose:
-      - "8000"
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - app
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - "127.0.0.1:${APP_PORT:-8813}:8000"
 
 volumes:
   db_data:
-  caddy_data:
-  caddy_config:

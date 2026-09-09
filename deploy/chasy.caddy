@@ -1,0 +1,17 @@
+# chasy.profitsenser.com — paste this block into /etc/caddy/Caddyfile
+# (behind Cloudflare; Cloudflare sends CF-Connecting-IP which the app uses
+#  for rate limiting — Caddy forwards it automatically).
+#
+#   sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak.$(date +%F)
+#   sudo nano /etc/caddy/Caddyfile        # add the block below
+#   sudo caddy validate --config /etc/caddy/Caddyfile
+#   sudo systemctl reload caddy
+
+chasy.profitsenser.com {
+	encode zstd gzip
+	reverse_proxy localhost:8813 {
+		header_up Host {host}
+		header_up X-Real-IP {remote_host}
+		header_up X-Forwarded-Proto {scheme}
+	}
+}

@@ -144,10 +144,12 @@ def _throttle(key: str, limit: int, window_sec: int) -> bool:
 
 
 def client_ip(request: Request) -> str:
-    # Caddy sets X-Real-IP to the real TCP peer (overwritten, not spoofable).
-    real = request.headers.get("x-real-ip")
-    if real:
-        return real.strip()
+    # Cloudflare sets CF-Connecting-IP (overwritten at the edge); Caddy sets
+    # X-Real-IP to the real TCP peer. Both are set by infra, not the client.
+    for header in ("cf-connecting-ip", "x-real-ip"):
+        value = request.headers.get(header)
+        if value:
+            return value.strip()
     xff = request.headers.get("x-forwarded-for")
     if xff:
         return xff.split(",")[0].strip()

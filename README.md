@@ -12,41 +12,55 @@
 | Бэкенд | FastAPI + SQLAlchemy, вся арифметика времени и Excel портированы из `worklog_dashboard2.py` |
 | БД | PostgreSQL |
 | Вход | magic link по e-mail, сессия в httpOnly-cookie (JWT) |
-| Прокси/TLS | Caddy (автоматический Let's Encrypt) |
+| Прокси/TLS | внешний (существующий Caddy на сервере) |
 
-Всё поднимается одним `docker compose up`.
+`docker compose` поднимает только `app` + `db`. Приложение слушает
+`127.0.0.1:${APP_PORT}`; TLS и домен даёт внешний reverse-proxy.
 
-## Быстрый старт на VPS
+## Деплой на VPS (за существующим Caddy, домен через Cloudflare)
 
 ```bash
-git clone https://github.com/trafficit/-Chasy.git worklog
-cd worklog
+git clone https://github.com/trafficit/-Chasy.git ~/Chasy
+cd ~/Chasy
 cp .env.example .env
-nano .env            # заполнить домен, секреты, SMTP
+nano .env            # BASE_URL, APP_PORT, SECRET_KEY, POSTGRES_PASSWORD, SMTP, ADMIN_TOKEN, SELLER_*
 docker compose up -d --build
+curl -sS localhost:8813/api/info      # проверка, что контейнер отвечает
 ```
 
-Открыть `https://<домен>` → ввести почту → перейти по ссылке из письма.
+**Caddy** — добавить блок из `deploy/chasy.caddy` в `/etc/caddy/Caddyfile`:
+
+```bash
+sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak.$(date +%F)
+sudo sh -c 'cat ~/Chasy/deploy/chasy.caddy >> /etc/caddy/Caddyfile'
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+**Cloudflare** — в DNS зоны `profitsenser.com`:
+- запись `A` (или `CNAME`) `chasy` → IP сервера, **Proxied (оранжевое облако)**;
+- SSL/TLS mode: **Full (strict)** — Caddy получит настоящий Let's Encrypt сертификат.
+- Cloudflare шлёт `CF-Connecting-IP` → приложение использует его для rate-limit.
 
 ### Что заполнить в `.env`
 
 | Переменная | Что это |
 |---|---|
-| `SITE_ADDRESS` | домен для Caddy, напр. `worklog.example.com` (или `:80` для локального теста) |
-| `BASE_URL` | публичный адрес, как его открывают пользователи, напр. `https://worklog.example.com` — попадает в ссылки из писем |
+| `BASE_URL` | `https://chasy.profitsenser.com` — попадает в ссылки из писем |
+| `APP_PORT` | локальный порт (по умолчанию `8813`), тот же в `deploy/chasy.caddy` |
 | `SECRET_KEY` | `openssl rand -hex 32` |
-| `POSTGRES_PASSWORD` | длинный случайный пароль |
-| `SMTP_*` | доступ к почтовому серверу для отправки писем. Пусто → ссылка печатается в `docker compose logs -f app` (годится для первого теста) |
-
-DNS: A-запись поддомена → IP VPS. Порты 80 и 443 должны быть открыты.
+| `POSTGRES_PASSWORD` | `openssl rand -hex 24` |
+| `SMTP_*` | почтовый сервер для писем. Пусто → ссылка в `docker compose logs -f app` |
+| `ADMIN_USER` / `ADMIN_TOKEN` | вход в `/admin` (см. раздел про монетизацию) |
+| `SELLER_*` | реквизиты для счёта (см. раздел про счета) |
 
 ## Локальный тест без домена и почты
 
 ```bash
 cp .env.example .env
-# в .env:  SITE_ADDRESS=:80   BASE_URL=http://localhost   DEV_ECHO_MAGIC_LINK=true
+# в .env:  BASE_URL=http://localhost:8813   DEV_ECHO_MAGIC_LINK=true
 docker compose up --build
-# открыть http://localhost , запросить вход, ссылку взять из логов app
+# открыть http://localhost:8813 , ссылку для входа взять из логов app
 ```
 
 ## Монетизация — коды доступа (вариант A)
