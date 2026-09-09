@@ -32,6 +32,12 @@ class Settings(BaseSettings):
     # free trial (days) granted to a brand-new account before a code is needed;
     # 0 -> no trial, a code is required immediately
     trial_days: int = 0
+    # comma-separated e-mail domains that are always free (no code, no banner),
+    # e.g. "ges-rent.sk,example.com"
+    free_email_domains: str = ""
+    # comma-separated codes that are always valid: seeded on startup as
+    # never-expiring, unlimited-seat licenses. e.g. "MayDay2027"
+    promo_codes: str = ""
 
 
 settings = Settings()

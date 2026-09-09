@@ -154,7 +154,7 @@ button:disabled { opacity: .4; cursor: default; }
 #license-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 
 #license-gate h2 { font-size: 18px; margin: 0 0 4px; }
-#license-code { text-transform: uppercase; letter-spacing: .04em; }
+#license-code { letter-spacing: .04em; }
 
 .banner {
   border: 1px solid var(--line);

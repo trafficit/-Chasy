@@ -29,6 +29,23 @@ def generate_code() -> str:
     return f"CHASY-{block()}-{block()}"
 
 
+def _csv(value: str) -> list[str]:
+    return [x.strip() for x in value.split(",") if x.strip()]
+
+
+def free_domains() -> set[str]:
+    return {d.lower().lstrip("@") for d in _csv(settings.free_email_domains)}
+
+
+def promo_codes() -> list[str]:
+    return _csv(settings.promo_codes)
+
+
+def email_is_free(email: str) -> bool:
+    domain = email.rsplit("@", 1)[-1].lower() if "@" in email else ""
+    return bool(domain) and domain in free_domains()
+
+
 def _as_aware(value: dt.datetime | None) -> dt.datetime | None:
     if value is None:
         return None
@@ -41,6 +58,9 @@ def license_state(user: models.User) -> dict:
     """Return {status, valid_until?, trial_until?, company?} for this user."""
     if not settings.license_required:
         return {"status": "disabled"}
+
+    if email_is_free(user.email):
+        return {"status": "active", "via": "domain"}
 
     lic = user.license
     if lic is not None:

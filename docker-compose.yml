@@ -40,6 +40,8 @@ services:
       LICENSE_REQUIRED: ${LICENSE_REQUIRED:-false}
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
       TRIAL_DAYS: ${TRIAL_DAYS:-0}
+      FREE_EMAIL_DOMAINS: ${FREE_EMAIL_DOMAINS:-}
+      PROMO_CODES: ${PROMO_CODES:-}
     expose:
       - "8000"
 

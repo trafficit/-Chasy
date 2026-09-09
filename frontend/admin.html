@@ -77,7 +77,8 @@
       <h2>Новый код</h2>
       <div class="row">
         <div><label>Компания</label><input id="n-company" type="text" /></div>
-        <div><label>Действует до</label><input id="n-until" type="date" /></div>
+        <div><label>Код (пусто = сгенерировать)</label><input id="n-code" type="text" placeholder="MayDay2027" /></div>
+        <div><label>Действует до (пусто = бессрочно)</label><input id="n-until" type="date" /></div>
         <div><label>Мест (пусто = ∞)</label><input id="n-seats" type="number" min="1" /></div>
         <div style="flex:2"><label>Заметка</label><input id="n-note" type="text" /></div>
         <div style="flex:0"><button id="create">Создать</button></div>
@@ -208,6 +209,7 @@ async function createLicense() {
   const seats = $("n-seats").value.trim();
   const body = {
     company: $("n-company").value.trim(),
+    code: $("n-code").value.trim(),
     valid_until: $("n-until").value || null,
     seats: seats === "" ? null : Number(seats),
     note: $("n-note").value.trim(),
@@ -219,10 +221,15 @@ async function createLicense() {
   });
   if (r.ok) {
     const l = await r.json();
-    $("n-company").value = $("n-until").value = $("n-seats").value = $("n-note").value = "";
+    $("n-company").value = $("n-code").value = $("n-until").value =
+      $("n-seats").value = $("n-note").value = "";
     msg(`Создан код: ${l.code}`, "ok");
     loadAll();
-  } else msg("Не удалось создать", "err");
+  } else {
+    let d = "";
+    try { d = (await r.json()).detail; } catch (_) {}
+    msg(d === "code already exists" ? "Такой код уже есть" : "Не удалось создать", "err");
+  }
 }
 
 function renderUsers(rows) {

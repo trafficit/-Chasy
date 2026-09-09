@@ -35,7 +35,40 @@ def _migrate() -> None:
         )
 
 
+def _seed_promo_codes() -> None:
+    """Codes listed in PROMO_CODES always exist as never-expiring free licenses."""
+    from sqlalchemy import func as _func
+    from sqlalchemy.orm import Session as _Session
+
+    codes = lic.promo_codes()
+    if not codes:
+        return
+    with _Session(engine) as db:
+        for code in codes:
+            row = db.scalar(
+                select(models.License).where(
+                    _func.upper(models.License.code) == code.upper()
+                )
+            )
+            if row is None:
+                db.add(
+                    models.License(
+                        code=code,
+                        company="(promo)",
+                        valid_until=None,
+                        seats=None,
+                        active=True,
+                        note="promo code (PROMO_CODES)",
+                    )
+                )
+            else:
+                row.active = True
+                row.valid_until = None
+        db.commit()
+
+
 _migrate()
+_seed_promo_codes()
 
 app = FastAPI(title="Chasy")
 
@@ -96,6 +129,7 @@ class RedeemIn(BaseModel):
 
 class LicenseIn(BaseModel):
     company: str = ""
+    code: str = ""  # empty -> auto-generate CHASY-XXXX-XXXX
     valid_until: dt.date | None = None
     seats: int | None = None
     note: str = ""
@@ -219,8 +253,10 @@ def redeem(
     user: models.User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
-    code = body.code.strip().upper()
-    lc = db.scalar(select(models.License).where(models.License.code == code))
+    code = body.code.strip()
+    lc = db.scalar(
+        select(models.License).where(func.upper(models.License.code) == code.upper())
+    )
     if lc is None:
         raise HTTPException(status_code=404, detail="unknown_code")
     if not lc.active:
@@ -397,12 +433,29 @@ def admin_list_licenses(db: Session = Depends(get_db)):
 
 @app.post("/api/admin/licenses", dependencies=[Depends(require_admin)])
 def admin_create_license(body: LicenseIn, db: Session = Depends(get_db)):
-    for _ in range(5):
-        code = lic.generate_code()
-        if not db.scalar(select(models.License).where(models.License.code == code)):
-            break
+    def taken(candidate: str) -> bool:
+        return bool(
+            db.scalar(
+                select(models.License).where(
+                    func.upper(models.License.code) == candidate.upper()
+                )
+            )
+        )
+
+    custom = body.code.strip()
+    if custom:
+        if len(custom) < 4:
+            raise HTTPException(status_code=400, detail="code too short")
+        if taken(custom):
+            raise HTTPException(status_code=409, detail="code already exists")
+        code = custom
     else:
-        raise HTTPException(status_code=500, detail="could not allocate a code")
+        for _ in range(5):
+            code = lic.generate_code()
+            if not taken(code):
+                break
+        else:
+            raise HTTPException(status_code=500, detail="could not allocate a code")
 
     vu = (
         dt.datetime.combine(body.valid_until, dt.time.max, tzinfo=dt.timezone.utc)
