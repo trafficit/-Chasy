@@ -5,8 +5,6 @@ const api = (path, opts) =>
   fetch(path, { credentials: "same-origin", ...opts });
 
 const APP_VERSION = "1.0";
-// shown in the About dialog; change the number here only
-const APP_PRICE = "7 €";
 
 let entries = [];
 let selectedId = null;
@@ -72,7 +70,6 @@ const I18N = {
     lic_tos_link: "условия использования",
     lic_tos_required: "Примите условия использования",
     about_terms: "Условия использования",
-    about_price: "{price}/мес за компанию · 14 дней бесплатно · продление автоматическое, отмена в любой момент",
   },
   uk: {
     logout: "вийти",
@@ -129,7 +126,6 @@ const I18N = {
     lic_tos_link: "умови використання",
     lic_tos_required: "Прийміть умови використання",
     about_terms: "Умови використання",
-    about_price: "{price}/міс за компанію · 14 днів безкоштовно · продовження автоматичне, скасування будь-коли",
   },
   sk: {
     logout: "odhlásiť",
@@ -186,7 +182,6 @@ const I18N = {
     lic_tos_link: "podmienkami používania",
     lic_tos_required: "Potvrďte podmienky používania",
     about_terms: "Podmienky používania",
-    about_price: "{price}/mes. za firmu · 14 dní zdarma · automatické obnovenie, zrušenie kedykoľvek",
   },
   en: {
     logout: "sign out",
@@ -243,7 +238,6 @@ const I18N = {
     lic_tos_link: "terms of use",
     lic_tos_required: "Please accept the terms of use",
     about_terms: "Terms of use",
-    about_price: "{price}/mo per company · 14 days free · renews automatically, cancel any time",
   },
 };
 
@@ -285,8 +279,6 @@ function applyI18n() {
   if (sel) sel.value = lang;
   const ver = $("about-version");
   if (ver) ver.textContent = "v" + APP_VERSION;
-  const price = $("about-price");
-  if (price) price.textContent = t("about_price", { price: APP_PRICE });
   applyLicense();
 }
 
