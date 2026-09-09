@@ -54,9 +54,12 @@ class MagicToken(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     email: Mapped[str] = mapped_column(String, index=True)
     token_hash: Mapped[str] = mapped_column(String, index=True)
+    ip: Mapped[str] = mapped_column(String, default="", index=True)
     expires_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
     used: Mapped[bool] = mapped_column(Boolean, default=False)
-    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, index=True
+    )
 
 
 class Invoice(Base):

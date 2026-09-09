@@ -3,5 +3,8 @@
 #   local test : :80
 {$SITE_ADDRESS} {
 	encode gzip
-	reverse_proxy app:8000
+	reverse_proxy app:8000 {
+		# real client IP for rate limiting (Caddy overwrites -> not spoofable)
+		header_up X-Real-IP {remote_host}
+	}
 }

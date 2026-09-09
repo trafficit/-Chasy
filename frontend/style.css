@@ -168,6 +168,18 @@ button:disabled { opacity: .4; cursor: default; }
 #login-form,
 #license-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
 
+.hp {
+  position: absolute !important;
+  left: -9999px !important;
+  top: auto !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  overflow: hidden;
+  opacity: 0;
+}
+
 #license-gate h2 { font-size: 18px; margin: 0 0 4px; }
 #license-code { letter-spacing: .04em; }
 

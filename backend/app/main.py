@@ -3,7 +3,16 @@ import secrets
 from io import BytesIO
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Header, HTTPException, Response, UploadFile
+from fastapi import (
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
@@ -48,6 +57,12 @@ def _migrate() -> None:
         )
         conn.execute(
             text("ALTER TABLE invoices DROP COLUMN IF EXISTS buyer_vat_id")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE magic_tokens ADD COLUMN IF NOT EXISTS "
+                "ip VARCHAR DEFAULT ''"
+            )
         )
 
 
@@ -107,10 +122,50 @@ FRONTEND_DIR = _find_frontend()
 
 
 # --------------------------------------------------------------------------- #
+# tiny in-memory rate limiter (per single worker; soft guard)
+# --------------------------------------------------------------------------- #
+import time as _time
+from collections import defaultdict
+
+_hits: dict[str, list[float]] = defaultdict(list)
+
+
+def _throttle(key: str, limit: int, window_sec: int) -> bool:
+    """Return True if `key` is over `limit` calls within `window_sec`."""
+    now = _time.monotonic()
+    bucket = _hits[key]
+    cutoff = now - window_sec
+    bucket[:] = [t for t in bucket if t > cutoff]
+    bucket.append(now)
+    if len(_hits) > 5000:  # keep the dict from growing forever
+        for k in [k for k, v in _hits.items() if not v or v[-1] < cutoff]:
+            _hits.pop(k, None)
+    return len(bucket) > limit
+
+
+def client_ip(request: Request) -> str:
+    # Caddy sets X-Real-IP to the real TCP peer (overwritten, not spoofable).
+    real = request.headers.get("x-real-ip")
+    if real:
+        return real.strip()
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "?"
+
+
+# --------------------------------------------------------------------------- #
 # schemas
 # --------------------------------------------------------------------------- #
 class EmailIn(BaseModel):
     email: EmailStr
+
+    model_config = {"extra": "allow"}  # honeypot field arrives as an extra
+
+    def honeypot_filled(self) -> bool:
+        extra = self.model_extra or {}
+        value = extra.get(settings.honeypot_field)
+        return bool(value and str(value).strip())
 
 
 class EntryIn(BaseModel):
@@ -212,15 +267,57 @@ def _license_public(lc: models.License, users_count: int) -> dict:
 # auth
 # --------------------------------------------------------------------------- #
 @app.post("/api/auth/request")
-async def auth_request(body: EmailIn, db: Session = Depends(get_db)):
+async def auth_request(
+    body: EmailIn, request: Request, db: Session = Depends(get_db)
+):
+    # honeypot: a bot filled the hidden field -> look successful, do nothing
+    if body.honeypot_filled():
+        return {"ok": True}
+
     email = body.email.lower()
+    ip = client_ip(request)
+    now = dt.datetime.now(dt.timezone.utc)
+
+    def count(*conds) -> int:
+        return db.scalar(select(func.count(models.MagicToken.id)).where(*conds)) or 0
+
+    per_min = count(
+        models.MagicToken.ip == ip,
+        models.MagicToken.created_at > now - dt.timedelta(minutes=1),
+    )
+    per_hour = count(
+        models.MagicToken.ip == ip,
+        models.MagicToken.created_at > now - dt.timedelta(hours=1),
+    )
+    last = db.scalar(
+        select(func.max(models.MagicToken.created_at)).where(
+            models.MagicToken.email == email
+        )
+    )
+    live = count(
+        models.MagicToken.email == email,
+        models.MagicToken.used.is_(False),
+        models.MagicToken.expires_at > now,
+    )
+    too_soon = last is not None and (
+        now - (last if last.tzinfo else last.replace(tzinfo=dt.timezone.utc))
+    ) < dt.timedelta(seconds=settings.auth_min_interval_sec)
+
+    if (
+        per_min >= settings.auth_max_per_min_per_ip
+        or per_hour >= settings.auth_max_per_hour_per_ip
+        or live >= settings.auth_max_live_tokens
+        or too_soon
+    ):
+        raise HTTPException(status_code=429, detail="too_many_requests")
+
     raw, token_hash = new_magic_token()
     db.add(
         models.MagicToken(
             email=email,
             token_hash=token_hash,
-            expires_at=dt.datetime.now(dt.timezone.utc)
-            + dt.timedelta(minutes=settings.magic_link_ttl_minutes),
+            ip=ip,
+            expires_at=now + dt.timedelta(minutes=settings.magic_link_ttl_minutes),
         )
     )
     db.commit()
@@ -280,9 +377,14 @@ def me(user: models.User = Depends(current_user)):
 @app.post("/api/license/redeem")
 def redeem(
     body: RedeemIn,
+    request: Request,
     user: models.User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
+    # soft anti-guessing guard: 20 attempts / 10 min per IP
+    if _throttle(f"redeem:{client_ip(request)}", limit=20, window_sec=600):
+        raise HTTPException(status_code=429, detail="too_many_requests")
+
     if not body.accept_terms:
         raise HTTPException(status_code=400, detail="terms_not_accepted")
 

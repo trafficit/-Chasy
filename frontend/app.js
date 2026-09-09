@@ -48,6 +48,7 @@ const I18N = {
     imported: "Импортировано записей: {n}",
     err_mail: "Не удалось отправить письмо",
     err_link: "Ссылка недействительна или устарела — запросите новую",
+    err_rate: "Слишком много попыток. Подождите немного.",
     about: "О приложении",
     about_desc:
       "Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал, экспорт и импорт Excel.",
@@ -106,6 +107,7 @@ const I18N = {
     imported: "Імпортовано записів: {n}",
     err_mail: "Не вдалося надіслати лист",
     err_link: "Посилання недійсне або застаріле — запросіть нове",
+    err_rate: "Забагато спроб. Зачекайте трохи.",
     about: "Про застосунок",
     about_desc:
       "Облік робочих годин: вхід за посиланням з листа, у кожного свій журнал, експорт та імпорт Excel.",
@@ -164,6 +166,7 @@ const I18N = {
     imported: "Importovaných záznamov: {n}",
     err_mail: "E-mail sa nepodarilo odoslať",
     err_link: "Odkaz je neplatný alebo vypršal — vyžiadajte si nový",
+    err_rate: "Príliš veľa pokusov. Chvíľu počkajte.",
     about: "O aplikácii",
     about_desc:
       "Evidencia pracovného času: prihlásenie cez odkaz v e-maile, každý má vlastný denník, export a import Excelu.",
@@ -222,6 +225,7 @@ const I18N = {
     imported: "Imported entries: {n}",
     err_mail: "Could not send the e-mail",
     err_link: "The link is invalid or expired — request a new one",
+    err_rate: "Too many attempts. Please wait a bit.",
     about: "About",
     about_desc:
       "Work-hours tracking: sign in via an e-mail link, each person has their own log, Excel export and import.",
@@ -431,6 +435,7 @@ async function redeemCode(ev) {
         expired_code: "lic_err_expired_code",
         seats_full: "lic_err_seats_full",
         terms_not_accepted: "lic_tos_required",
+        too_many_requests: "err_rate",
       };
       key = map[(await r.json()).detail] || "err_generic";
     } catch (_) {}
@@ -711,12 +716,16 @@ $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = $("login-email").value.trim();
   if (!email) return;
+  const payload = { email };
+  const hp = $("hp-website");
+  if (hp && hp.value) payload.website = hp.value;
   const r = await api("/api/auth/request", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify(payload),
   });
   if (r.ok) $("login-sent").hidden = false;
+  else if (r.status === 429) toast(t("err_rate"));
   else toast(t("err_mail"));
 });
 
