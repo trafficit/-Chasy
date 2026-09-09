@@ -108,7 +108,7 @@ const T = {
     due: "Оплатить до", reg: "Рег. №", vat: "НДС №",
     desc: "Наименование", qty: "Мес.", unit: "Цена/мес", amount: "Сумма",
     total: "Итого к оплате", payment: "Оплата",
-    transfer: "Банковский перевод (в т.ч. Wise)", bank: "Банк",
+    transfer: "Банковский перевод", bank: "Банк", pay_online: "Оплатить онлайн",
     product: "Chasy — доступ к сервису учёта рабочего времени",
     hint: "После оплаты пришлите подтверждение — вышлем код доступа.",
   },
@@ -124,7 +124,7 @@ const T = {
     due: "Сплатити до", reg: "Рег. №", vat: "ПДВ №",
     desc: "Найменування", qty: "Міс.", unit: "Ціна/міс", amount: "Сума",
     total: "Разом до сплати", payment: "Оплата",
-    transfer: "Банківський переказ (у т.ч. Wise)", bank: "Банк",
+    transfer: "Банківський переказ", bank: "Банк", pay_online: "Сплатити онлайн",
     product: "Chasy — доступ до сервісу обліку робочого часу",
     hint: "Після оплати надішліть підтвердження — вишлемо код доступу.",
   },
@@ -140,7 +140,7 @@ const T = {
     due: "Splatnosť", reg: "IČO", vat: "IČ DPH",
     desc: "Popis", qty: "Mes.", unit: "Cena/mes.", amount: "Suma",
     total: "Spolu na úhradu", payment: "Platba",
-    transfer: "Bankový prevod (aj Wise)", bank: "Banka",
+    transfer: "Bankový prevod", bank: "Banka", pay_online: "Zaplatiť online",
     product: "Chasy — prístup k službe evidencie pracovného času",
     hint: "Po úhrade pošlite potvrdenie — zašleme prístupový kód.",
   },
@@ -156,7 +156,7 @@ const T = {
     due: "Due date", reg: "Reg. no.", vat: "VAT ID",
     desc: "Description", qty: "Mo.", unit: "Unit/mo", amount: "Amount",
     total: "Total due", payment: "Payment",
-    transfer: "Bank transfer (incl. Wise)", bank: "Bank",
+    transfer: "Bank transfer", bank: "Bank", pay_online: "Pay online",
     product: "Chasy — access to the work-time tracking service",
     hint: "After payment, send the confirmation — we will e-mail the access code.",
   },
@@ -230,9 +230,19 @@ function renderDoc(inv) {
     <div class="total">${tr("total")}: ${esc(inv.amount)} ${esc(cur)}</div>
     <div class="pay">
       <h3 style="font-size:12px;text-transform:uppercase;color:#666">${tr("payment")}</h3>
-      <div>${tr("transfer")}</div>
-      <div>IBAN: <code>${esc(s.iban)}</code></div>
-      ${s.bank ? `<div>${tr("bank")}: ${esc(s.bank)}</div>` : ""}
+      ${
+        s.pay_link
+          ? `<div style="margin:4px 0 8px"><strong>${tr("pay_online")}:</strong>
+               <a href="${esc(s.pay_link)}" target="_blank" rel="noopener">${esc(s.pay_link)}</a></div>`
+          : ""
+      }
+      ${
+        s.iban
+          ? `<div>${tr("transfer")}</div>
+             <div>IBAN: <code>${esc(s.iban)}</code></div>
+             ${s.bank ? `<div>${tr("bank")}: ${esc(s.bank)}</div>` : ""}`
+          : ""
+      }
       <div>${tr("vs")}: <code>${esc(inv.variable_symbol)}</code></div>
     </div>
     ${inv.note ? `<p class="muted">${esc(inv.note)}</p>` : ""}

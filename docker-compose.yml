@@ -62,6 +62,7 @@ services:
       SELLER_REG_ID: ${SELLER_REG_ID:-}
       SELLER_IBAN: ${SELLER_IBAN:-}
       SELLER_BANK: ${SELLER_BANK:-}
+      SELLER_PAY_LINK: ${SELLER_PAY_LINK:-}
       SELLER_EMAIL: ${SELLER_EMAIL:-}
     ports:
       - "127.0.0.1:${APP_PORT:-8813}:8000"

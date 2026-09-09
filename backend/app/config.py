@@ -64,6 +64,9 @@ class Settings(BaseSettings):
     seller_iban: str = ""
     seller_bank: str = ""
     seller_email: str = ""
+    # optional Wise / other payment link shown on the invoice; if set you can
+    # leave SELLER_IBAN empty and the IBAN never appears
+    seller_pay_link: str = ""
     # printed on every invoice — the app is built for non-VAT sellers
     invoice_note: str = "Nie sme platcami DPH. / Не является плательщиком НДС."
 

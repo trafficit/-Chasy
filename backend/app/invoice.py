@@ -12,7 +12,10 @@ CURRENCY_SIGN = {"EUR": "€", "USD": "$", "GBP": "£", "CZK": "Kč", "PLN": "z�
 
 
 def enabled() -> bool:
-    return bool(settings.seller_name.strip() and settings.seller_iban.strip())
+    has_payment = bool(
+        settings.seller_iban.strip() or settings.seller_pay_link.strip()
+    )
+    return bool(settings.seller_name.strip() and has_payment)
 
 
 def price_decimal() -> Decimal:
@@ -37,6 +40,7 @@ def seller_block() -> dict:
         "reg_id": settings.seller_reg_id,
         "iban": settings.seller_iban,
         "bank": settings.seller_bank,
+        "pay_link": settings.seller_pay_link,
         "email": settings.seller_email or settings.smtp_from,
     }
 
