@@ -58,6 +58,7 @@ const I18N = {
     about_desc:
       "Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал, экспорт и импорт Excel.",
     about_contact: "Связь",
+    about_sponsor: "Спонсор",
     about_close: "Закрыть",
     lic_gate_title: "Доступ по коду",
     lic_gate_hint: "Введите код доступа, который вам выдали.",
@@ -122,6 +123,7 @@ const I18N = {
     about_desc:
       "Облік робочих годин: вхід за посиланням з листа, у кожного свій журнал, експорт та імпорт Excel.",
     about_contact: "Зв'язок",
+    about_sponsor: "Спонсор",
     about_close: "Закрити",
     lic_gate_title: "Доступ за кодом",
     lic_gate_hint: "Введіть код доступу, який вам видали.",
@@ -186,6 +188,7 @@ const I18N = {
     about_desc:
       "Evidencia pracovného času: prihlásenie cez odkaz v e-maile, každý má vlastný denník, export a import Excelu.",
     about_contact: "Kontakt",
+    about_sponsor: "Sponzor",
     about_close: "Zavrieť",
     lic_gate_title: "Prístup cez kód",
     lic_gate_hint: "Zadajte prístupový kód, ktorý ste dostali.",
@@ -250,6 +253,7 @@ const I18N = {
     about_desc:
       "Work-hours tracking: sign in via an e-mail link, each person has their own log, Excel export and import.",
     about_contact: "Contact",
+    about_sponsor: "Sponsor",
     about_close: "Close",
     lic_gate_title: "Access code",
     lic_gate_hint: "Enter the access code you were given.",
@@ -360,13 +364,6 @@ function dotsToIso(dots) {
 function minutes(hhmm) {
   const m = String(hhmm).match(/^(\d+):(\d+)$/);
   return m ? +m[1] * 60 + +m[2] : 0;
-}
-
-// 24h time mask: digits only -> "HH:MM" as you type
-function timeMask(el) {
-  let d = el.value.replace(/\D/g, "").slice(0, 4);
-  if (d.length === 1 && +d > 2) d = "0" + d;
-  el.value = d.length >= 3 ? d.slice(0, 2) + ":" + d.slice(2) : d;
 }
 
 function fmtDate(iso) {
@@ -634,8 +631,8 @@ function startEdit() {
   if (!e) return;
   editingId = e.id;
   $("f-date").value = dotsToIso(e.date);
-  $("f-start").value = /^\d{1,2}:\d{2}$/.test(e.start) ? e.start : "";
-  $("f-end").value = /^\d{1,2}:\d{2}$/.test(e.end) ? e.end : "";
+  $("f-start").value = /^\d{2}:\d{2}$/.test(e.start) ? e.start : "";
+  $("f-end").value = /^\d{2}:\d{2}$/.test(e.end) ? e.end : "";
   $("f-lunch").value = e.lunch || "";
   $("f-comment").value = e.comment || "";
   $("add").hidden = true;
@@ -771,9 +768,6 @@ $("up").addEventListener("click", () => move(-1));
 $("down").addEventListener("click", () => move(1));
 $("export").addEventListener("click", () => (location.href = "/api/export.xlsx"));
 $("import-btn").addEventListener("click", () => $("import-file").click());
-$("f-start").addEventListener("input", (ev) => timeMask(ev.target));
-$("f-end").addEventListener("input", (ev) => timeMask(ev.target));
-
 $("import-file").addEventListener("change", (ev) => {
   if (ev.target.files[0]) importFile(ev.target.files[0]);
   ev.target.value = "";

@@ -1,31 +1,24 @@
-// Minimal offline shell. API calls always go to the network.
-const CACHE = "chasy-v21";
-const SHELL = ["/", "/index.html", "/style.css", "/app.js", "/manifest.webmanifest"];
+// Network passthrough — no caching.
+// (Kept only so browsers that installed an earlier caching version of this
+//  file replace it, wipe the old caches, and stop serving stale assets.)
 
-self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)));
-  self.skipWaiting();
-});
+self.addEventListener("install", () => self.skipWaiting());
 
-self.addEventListener("activate", (e) => {
-  e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", (e) => {
-  const url = new URL(e.request.url);
-  if (e.request.method !== "GET" || url.pathname.startsWith("/api/")) return;
-  e.respondWith(
-    fetch(e.request)
-      .then((res) => {
-        const copy = res.clone();
-        caches.open(CACHE).then((c) => c.put(e.request, copy));
-        return res;
-      })
-      .catch(() => caches.match(e.request).then((m) => m || caches.match("/")))
+self.addEventListener("activate", (event) => {
+  event.waitUntil(
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((k) => caches.delete(k)));
+      await self.clients.claim();
+      // one-time refresh for pages that were showing cached content
+      const windows = await self.clients.matchAll({ type: "window" });
+      for (const client of windows) {
+        try {
+          client.navigate(client.url);
+        } catch (_) {}
+      }
+    })()
   );
 });
+
+// no "fetch" handler -> the browser handles every request normally
