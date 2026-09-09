@@ -1,5 +1,5 @@
 // Minimal offline shell. API calls always go to the network.
-const CACHE = "chasy-v3";
+const CACHE = "chasy-v5";
 const SHELL = ["/", "/index.html", "/style.css", "/app.js", "/manifest.webmanifest"];
 
 self.addEventListener("install", (e) => {

@@ -7,8 +7,194 @@ const api = (path, opts) =>
 let entries = [];
 let selectedId = null;
 let editingId = null;
-let currentEmail = "";
 let addBusy = false;
+
+// --------------------------------------------------------------------------- //
+// i18n
+// --------------------------------------------------------------------------- //
+const I18N = {
+  ru: {
+    logout: "выйти",
+    login_hint: "Введите рабочую почту — пришлём ссылку для входа.",
+    login_btn: "Получить ссылку",
+    login_sent: "Письмо отправлено. Откройте ссылку из письма на этом устройстве.",
+    f_date: "Дата",
+    f_start: "Начало",
+    f_end: "Конец",
+    f_lunch: "Обед (мин или Ч:ММ)",
+    f_comment: "Комментарий",
+    ph_comment: "заметка",
+    add: "Добавить",
+    holiday: "Выходной",
+    save_edit: "Сохранить изменения",
+    cancel: "отмена",
+    empty: "Пока нет записей.",
+    move_up: "⬆ Выше",
+    move_down: "⬇ Ниже",
+    edit: "✏️ Изменить",
+    del: "🗑 Удалить",
+    export: "Экспорт в Excel",
+    import: "Импорт из Excel",
+    lunch_label: "Обед",
+    net_label: "Нетто",
+    total: "Всего (нетто): {h} ч {m} мин",
+    holiday_tag: "Выходной",
+    err_no_date: "Укажите дату",
+    err_dup: "Такая запись уже есть",
+    err_generic: "Ошибка",
+    err_import: "Не удалось прочитать файл",
+    imported: "Импортировано записей: {n}",
+    err_mail: "Не удалось отправить письмо",
+    err_link: "Ссылка недействительна или устарела — запросите новую",
+  },
+  uk: {
+    logout: "вийти",
+    login_hint: "Введіть робочу пошту — надішлемо посилання для входу.",
+    login_btn: "Отримати посилання",
+    login_sent: "Лист надіслано. Відкрийте посилання з листа на цьому пристрої.",
+    f_date: "Дата",
+    f_start: "Початок",
+    f_end: "Кінець",
+    f_lunch: "Обід (хв або Г:ХХ)",
+    f_comment: "Коментар",
+    ph_comment: "нотатка",
+    add: "Додати",
+    holiday: "Вихідний",
+    save_edit: "Зберегти зміни",
+    cancel: "скасувати",
+    empty: "Поки немає записів.",
+    move_up: "⬆ Вище",
+    move_down: "⬇ Нижче",
+    edit: "✏️ Змінити",
+    del: "🗑 Видалити",
+    export: "Експорт у Excel",
+    import: "Імпорт з Excel",
+    lunch_label: "Обід",
+    net_label: "Нетто",
+    total: "Разом (нетто): {h} год {m} хв",
+    holiday_tag: "Вихідний",
+    err_no_date: "Вкажіть дату",
+    err_dup: "Такий запис уже є",
+    err_generic: "Помилка",
+    err_import: "Не вдалося прочитати файл",
+    imported: "Імпортовано записів: {n}",
+    err_mail: "Не вдалося надіслати лист",
+    err_link: "Посилання недійсне або застаріле — запросіть нове",
+  },
+  sk: {
+    logout: "odhlásiť",
+    login_hint: "Zadajte pracovný e-mail — pošleme odkaz na prihlásenie.",
+    login_btn: "Získať odkaz",
+    login_sent: "E-mail odoslaný. Otvorte odkaz z e-mailu na tomto zariadení.",
+    f_date: "Dátum",
+    f_start: "Začiatok",
+    f_end: "Koniec",
+    f_lunch: "Obed (min alebo H:MM)",
+    f_comment: "Poznámka",
+    ph_comment: "poznámka",
+    add: "Pridať",
+    holiday: "Sviatok",
+    save_edit: "Uložiť zmeny",
+    cancel: "zrušiť",
+    empty: "Zatiaľ žiadne záznamy.",
+    move_up: "⬆ Vyššie",
+    move_down: "⬇ Nižšie",
+    edit: "✏️ Upraviť",
+    del: "🗑 Odstrániť",
+    export: "Export do Excelu",
+    import: "Import z Excelu",
+    lunch_label: "Obed",
+    net_label: "Netto",
+    total: "Spolu (netto): {h} h {m} min",
+    holiday_tag: "Sviatok",
+    err_no_date: "Zadajte dátum",
+    err_dup: "Takýto záznam už existuje",
+    err_generic: "Chyba",
+    err_import: "Súbor sa nepodarilo načítať",
+    imported: "Importovaných záznamov: {n}",
+    err_mail: "E-mail sa nepodarilo odoslať",
+    err_link: "Odkaz je neplatný alebo vypršal — vyžiadajte si nový",
+  },
+  en: {
+    logout: "sign out",
+    login_hint: "Enter your work e-mail — we'll send a sign-in link.",
+    login_btn: "Send link",
+    login_sent: "E-mail sent. Open the link from the message on this device.",
+    f_date: "Date",
+    f_start: "Start",
+    f_end: "End",
+    f_lunch: "Lunch (min or H:MM)",
+    f_comment: "Comment",
+    ph_comment: "note",
+    add: "Add",
+    holiday: "Day off",
+    save_edit: "Save changes",
+    cancel: "cancel",
+    empty: "No entries yet.",
+    move_up: "⬆ Up",
+    move_down: "⬇ Down",
+    edit: "✏️ Edit",
+    del: "🗑 Delete",
+    export: "Export to Excel",
+    import: "Import from Excel",
+    lunch_label: "Lunch",
+    net_label: "Net",
+    total: "Net total: {h}h {m}m",
+    holiday_tag: "Day off",
+    err_no_date: "Enter a date",
+    err_dup: "This entry already exists",
+    err_generic: "Error",
+    err_import: "Could not read the file",
+    imported: "Imported entries: {n}",
+    err_mail: "Could not send the e-mail",
+    err_link: "The link is invalid or expired — request a new one",
+  },
+};
+
+const SUPPORTED = ["ru", "uk", "sk", "en"];
+
+function detectLang() {
+  try {
+    const saved = localStorage.getItem("chasy_lang");
+    if (saved && SUPPORTED.includes(saved)) return saved;
+  } catch (_) {}
+  const cands = [navigator.language, ...(navigator.languages || [])];
+  for (const c of cands) {
+    const code = String(c || "").toLowerCase().slice(0, 2);
+    if (SUPPORTED.includes(code)) return code;
+  }
+  return "ru";
+}
+
+let lang = detectLang();
+
+function t(key, vars) {
+  let s = (I18N[lang] && I18N[lang][key]) || I18N.ru[key] || key;
+  if (vars) for (const k in vars) s = s.split(`{${k}}`).join(vars[k]);
+  return s;
+}
+
+function applyI18n() {
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-ph]").forEach((el) => {
+    el.placeholder = t(el.dataset.i18nPh);
+  });
+  const sel = $("lang");
+  if (sel) sel.value = lang;
+  render();
+}
+
+function setLang(next) {
+  if (!SUPPORTED.includes(next)) return;
+  lang = next;
+  try {
+    localStorage.setItem("chasy_lang", next);
+  } catch (_) {}
+  applyI18n();
+}
 
 // --------------------------------------------------------------------------- //
 // helpers
@@ -52,17 +238,23 @@ function render() {
     li.dataset.id = e.id;
     if (e.id === selectedId) li.classList.add("sel");
 
+    const isHoliday = e.date.includes("(Holiday)");
+    const dateDisp = isHoliday
+      ? e.date.replace(/\s*\(Holiday\)\s*/, "") + ` · ${t("holiday_tag")}`
+      : e.date;
+
     const main = document.createElement("div");
     main.className = "main";
-    main.textContent = `${e.date}   ${e.start}–${e.end} → ${e.duration}`;
+    main.textContent = isHoliday
+      ? dateDisp
+      : `${dateDisp}   ${e.start}–${e.end} → ${e.duration}`;
 
     const sub = document.createElement("div");
     sub.className = "sub";
     const bits = [];
-    if (lunchShown && e.lunch) bits.push(`Обед ${e.lunch}`);
-    if (lunchShown) bits.push(`Net ${e.net}`);
-    if (currentEmail) bits.push(`🏷️ ${currentEmail}`);
-    if (e.comment && e.comment !== currentEmail) bits.push(`✎ ${e.comment}`);
+    if (lunchShown && e.lunch) bits.push(`${t("lunch_label")} ${e.lunch}`);
+    if (lunchShown) bits.push(`${t("net_label")} ${e.net}`);
+    if (e.comment) bits.push(`✎ ${e.comment}`);
     sub.textContent = bits.join("   ·   ");
 
     li.append(main, sub);
@@ -78,8 +270,10 @@ function render() {
   $("empty").hidden = entries.length > 0;
 
   const total = entries.reduce((s, e) => s + minutes(e.net), 0);
-  $("total").textContent =
-    `Net Total: ${Math.floor(total / 60)} hours and ${total % 60} minutes`;
+  $("total").textContent = t("total", {
+    h: Math.floor(total / 60),
+    m: total % 60,
+  });
 
   const idx = entries.findIndex((e) => e.id === selectedId);
   const has = idx >= 0;
@@ -114,7 +308,6 @@ function clearForm() {
   ["f-date", "f-start", "f-end", "f-lunch", "f-comment"].forEach(
     (id) => ($(id).value = "")
   );
-  if ($("f-email")) $("f-email").value = currentEmail;
 }
 
 function selectEntry(id, { keepSelection = false } = {}) {
@@ -138,10 +331,10 @@ function sameSlot(a, b) {
 async function addEntry() {
   if (editingId || addBusy) return;
   const body = formPayload();
-  if (!body.date) return toast("Укажите дату");
+  if (!body.date) return toast(t("err_no_date"));
   const dup = entries.find((e) => sameSlot(e, body));
   if (dup) {
-    toast("Такая запись уже есть");
+    toast(t("err_dup"));
     selectedId = dup.id;
     render();
     return;
@@ -154,7 +347,7 @@ async function addEntry() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (!r.ok) return toast((await r.json()).detail || "Ошибка");
+    if (!r.ok) return toast((await r.json()).detail || t("err_generic"));
     clearForm();
     await load();
   } finally {
@@ -171,7 +364,7 @@ async function addHoliday() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ date: `${base} (Holiday)` }),
   });
-  if (!r.ok) return toast("Ошибка");
+  if (!r.ok) return toast(t("err_generic"));
   await load();
 }
 
@@ -183,8 +376,7 @@ function startEdit() {
   $("f-start").value = /^\d{2}:\d{2}$/.test(e.start) ? e.start : "";
   $("f-end").value = /^\d{2}:\d{2}$/.test(e.end) ? e.end : "";
   $("f-lunch").value = e.lunch || "";
-  $("f-email").value = currentEmail;
-  $("f-comment").value = e.comment === currentEmail ? "" : e.comment || "";
+  $("f-comment").value = e.comment || "";
   $("add").hidden = true;
   $("holiday").hidden = true;
   $("save-edit").hidden = false;
@@ -203,13 +395,13 @@ function stopEdit() {
 
 async function saveEdit() {
   const body = formPayload();
-  if (!body.date) return toast("Укажите дату");
+  if (!body.date) return toast(t("err_no_date"));
   const r = await api(`/api/entries/${editingId}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
-  if (!r.ok) return toast((await r.json()).detail || "Ошибка");
+  if (!r.ok) return toast((await r.json()).detail || t("err_generic"));
   stopEdit();
   await load();
 }
@@ -217,7 +409,7 @@ async function saveEdit() {
 async function del() {
   if (!selectedId) return;
   const r = await api(`/api/entries/${selectedId}`, { method: "DELETE" });
-  if (!r.ok && r.status !== 204) return toast("Ошибка");
+  if (!r.ok && r.status !== 204) return toast(t("err_generic"));
   selectedId = null;
   await load();
 }
@@ -239,9 +431,9 @@ async function importFile(file) {
   const fd = new FormData();
   fd.append("file", file);
   const r = await api("/api/import", { method: "POST", body: fd });
-  if (!r.ok) return toast((await r.json()).detail || "Не удалось прочитать файл");
+  if (!r.ok) return toast((await r.json()).detail || t("err_import"));
   const { imported } = await r.json();
-  toast(`Импортировано записей: ${imported}`);
+  toast(t("imported", { n: imported }));
   await load();
 }
 
@@ -251,20 +443,24 @@ async function importFile(file) {
 function showLogin() {
   $("app").hidden = true;
   $("login").hidden = false;
+  $("who").hidden = true;
+  $("logout").hidden = true;
 }
 
 async function showApp(email) {
-  currentEmail = email;
   $("login").hidden = true;
   $("app").hidden = false;
   $("who").textContent = email;
-  $("f-email").value = email;
+  $("who").hidden = false;
+  $("logout").hidden = false;
   await load();
 }
 
 // --------------------------------------------------------------------------- //
 // wire up
 // --------------------------------------------------------------------------- //
+$("lang").addEventListener("change", (ev) => setLang(ev.target.value));
+
 $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = $("login-email").value.trim();
@@ -275,7 +471,7 @@ $("login-form").addEventListener("submit", async (ev) => {
     body: JSON.stringify({ email }),
   });
   if (r.ok) $("login-sent").hidden = false;
-  else toast("Не удалось отправить письмо");
+  else toast(t("err_mail"));
 });
 
 $("logout").addEventListener("click", async () => {
@@ -299,9 +495,11 @@ $("import-file").addEventListener("change", (ev) => {
 });
 
 (async function init() {
+  applyI18n();
+
   const params = new URLSearchParams(location.search);
   if (params.get("error") === "link") {
-    toast("Ссылка недействительна или устарела — запросите новую");
+    toast(t("err_link"));
     history.replaceState({}, "", "/");
   }
   const r = await api("/api/me");

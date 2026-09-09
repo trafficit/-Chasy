@@ -231,7 +231,7 @@ def reorder(
 @app.get("/api/export.xlsx")
 def export_xlsx(user=Depends(current_user), db: Session = Depends(get_db)):
     rows = db.scalars(_entries_q(user.id)).all()
-    data = build_xlsx(rows, email=user.email)
+    data = build_xlsx(rows)
     filename = f"chasy_{dt.date.today().isoformat()}.xlsx"
     return StreamingResponse(
         BytesIO(data),
