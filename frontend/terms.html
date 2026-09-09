@@ -23,90 +23,228 @@
   }
   main { max-width: 680px; margin: 0 auto; }
   h1 { font-size: 22px; margin: 0 0 4px; }
-  h2 { font-size: 16px; margin: 24px 0 6px; }
+  h2 { font-size: 16px; margin: 22px 0 6px; }
   p, li { margin: 6px 0; }
   ul { padding-left: 22px; }
   a { color: var(--accent); }
   .muted { color: var(--muted); font-size: 13px; }
+  .langbar { margin: 10px 0 4px; }
+  .langbar button {
+    font: inherit; background: none; border: 1px solid var(--line);
+    color: var(--ink); border-radius: 7px; padding: 4px 10px; margin-right: 4px;
+    cursor: pointer;
+  }
+  .langbar button[aria-pressed="true"] { border-color: var(--accent); color: var(--accent); }
   hr { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Условия использования сервиса «Chasy»</h1>
-  <p class="muted">Версия 2026-09-09. Slovenská / English verzia na vyžiadanie.</p>
-
-  <h2>1. Предмет</h2>
-  <p>«Chasy» — веб-сервис для учёта рабочего времени сотрудников (журнал смен,
-  подсчёт часов, экспорт и импорт Excel). Сервис предоставляется юридическим
-  лицам и предпринимателям для использования в их хозяйственной деятельности.
-  Регистрируясь и активируя код доступа, вы (далее «Клиент») принимаете
-  настоящие условия.</p>
-
-  <h2>2. Подписка и оплата</h2>
-  <ul>
-    <li>Тариф сообщается Клиенту при оформлении заказа и указывается в счёте.</li>
-    <li>Оплата производится по счёту (фактуре), который направляется Клиенту
-      после оформления заказа. Способ оплаты — банковский перевод; платёжные
-      реквизиты указываются в счёте.</li>
-    <li>Расчётный период — один календарный месяц, если не согласовано иное
-      (например, годовая оплата).</li>
-    <li><strong>Подписка продлевается автоматически</strong> на следующий
-      расчётный период до момента отмены Клиентом. За каждый новый период
-      выставляется новый счёт.</li>
-    <li>При неоплате счёта в течение 10 дней доступ переводится в режим
-      «только чтение» (просмотр и экспорт данных сохраняются); полная
-      функциональность восстанавливается после оплаты.</li>
-  </ul>
-
-  <h2>3. Пробный период</h2>
-  <p>Новым Клиентам предоставляется бесплатный пробный период 14 дней без
-  обязательств оплаты. По его окончании для продолжения работы требуется
-  активный код доступа.</p>
-
-  <h2>4. Отмена</h2>
-  <ul>
-    <li>Клиент может отменить подписку в любой момент — письмом на адрес
-      <a href="mailto:trafficit365@gmail.com">trafficit365@gmail.com</a>
-      или средствами приложения, если такая возможность доступна.</li>
-    <li>Доступ сохраняется до конца оплаченного периода. Возврат оплаты за
-      текущий (начатый) период не производится.</li>
-    <li>Автопродление после отмены не выполняется, новые счета не выставляются.</li>
-  </ul>
-
-  <h2>5. Данные Клиента</h2>
-  <ul>
-    <li>Все внесённые данные принадлежат Клиенту. Экспорт в формате Excel
-      доступен в любой момент.</li>
-    <li>После расторжения данные хранятся 30 дней (для возможного экспорта),
-      затем удаляются без возможности восстановления.</li>
-    <li>В отношении персональных данных сотрудников Клиент выступает
-      контролёром, Исполнитель — обработчиком; данные используются
-      исключительно для функционирования сервиса и не передаются третьим
-      лицам, кроме поставщика хостинга и сервиса отправки писем.</li>
-  </ul>
-
-  <h2>6. Доступность и ответственность</h2>
-  <ul>
-    <li>Исполнитель прилагает разумные усилия для бесперебойной работы
-      сервиса, но не гарантирует отсутствие перерывов и ошибок.</li>
-    <li>Сервис предоставляется «как есть». Исполнитель не отвечает за
-      косвенные убытки и упущенную выгоду.</li>
-    <li>Совокупная ответственность Исполнителя ограничена суммой платежей
-      Клиента за последние 3 месяца.</li>
-  </ul>
-
-  <h2>7. Изменение условий</h2>
-  <p>Исполнитель может изменять настоящие условия, уведомив Клиента по
-  электронной почте не менее чем за 14 дней. Продолжение использования сервиса
-  после вступления изменений в силу означает согласие с ними.</p>
-
-  <h2>8. Применимое право</h2>
-  <p>К настоящим условиям применяется право Словацкой Республики. Споры
-  разрешаются по месту нахождения Исполнителя.</p>
-
+  <div class="langbar">
+    <button data-lang="ru">RU</button>
+    <button data-lang="uk">UKR</button>
+    <button data-lang="sk">SK</button>
+    <button data-lang="en">EN</button>
+  </div>
+  <h1 id="t-title"></h1>
+  <p class="muted" id="t-version"></p>
+  <div id="t-body"></div>
   <hr />
-  <p class="muted">Контакт: <a href="mailto:trafficit365@gmail.com">trafficit365@gmail.com</a></p>
+  <p class="muted" id="t-contact"></p>
 </main>
+
+<script>
+"use strict";
+const CONTACT = "trafficit365@gmail.com";
+const VERSION = "2026-09-09";
+
+const T = {
+  ru: {
+    title: "Условия использования сервиса «Chasy»",
+    version: `Версия ${VERSION}.`,
+    contact: `Контакт: <a href="mailto:${CONTACT}">${CONTACT}</a>`,
+    sections: [
+      ["1. Предмет",
+        ["«Chasy» — веб-сервис для учёта рабочего времени сотрудников (журнал смен, подсчёт часов, экспорт и импорт Excel). Сервис предоставляется юридическим лицам и предпринимателям. Активируя код доступа, вы («Клиент») принимаете настоящие условия."]],
+      ["2. Подписка и оплата",
+        ["Тариф сообщается при оформлении и указывается в счёте.",
+         "Оплата — по счёту (проформе), банковским переводом; платёжные реквизиты указаны в счёте.",
+         "Расчётный период — один месяц, если не согласовано иное (например, год).",
+         "Подписка продлевается автоматически до отмены Клиентом; за каждый период выставляется новый счёт.",
+         "При неоплате счёта в течение 10 дней доступ переводится в режим «только чтение» до оплаты."]],
+      ["3. Пробный период",
+        ["Новым Клиентам предоставляется бесплатный пробный период 14 дней без обязательств оплаты."]],
+      ["4. Отмена",
+        ["Отменить подписку можно в любой момент — письмом на " + CONTACT + " или средствами приложения.",
+         "Доступ сохраняется до конца оплаченного периода; возврат за текущий период не производится."]],
+      ["5. Данные Клиента",
+        ["Все внесённые данные принадлежат Клиенту; экспорт в Excel доступен в любой момент.",
+         "После расторжения данные хранятся 30 дней, затем удаляются.",
+         "В отношении персональных данных сотрудников Клиент — контролёр, Исполнитель — обработчик; данные используются только для работы сервиса."]],
+      ["6. Доступность и ответственность",
+        ["Исполнитель прилагает разумные усилия для бесперебойной работы, но не гарантирует отсутствие перерывов.",
+         "Сервис предоставляется «как есть»; Исполнитель не отвечает за косвенные убытки и упущенную выгоду.",
+         "Совокупная ответственность ограничена суммой платежей Клиента за последние 3 месяца."]],
+      ["7. Налоги",
+        ["Исполнитель не является плательщиком НДС; суммы в счетах указаны без НДС."]],
+      ["8. Изменение условий",
+        ["Исполнитель может изменять условия, уведомив Клиента по электронной почте не менее чем за 14 дней. Продолжение использования означает согласие."]],
+      ["9. Применимое право",
+        ["Применяется право Словацкой Республики. Споры разрешаются по месту нахождения Исполнителя."]],
+    ],
+  },
+  uk: {
+    title: "Умови використання сервісу «Chasy»",
+    version: `Версія ${VERSION}.`,
+    contact: `Контакт: <a href="mailto:${CONTACT}">${CONTACT}</a>`,
+    sections: [
+      ["1. Предмет",
+        ["«Chasy» — веб-сервіс для обліку робочого часу працівників (журнал змін, підрахунок годин, експорт та імпорт Excel). Сервіс надається юридичним особам і підприємцям. Активуючи код доступу, ви («Клієнт») приймаєте ці умови."]],
+      ["2. Підписка та оплата",
+        ["Тариф повідомляється під час оформлення і зазначається в рахунку.",
+         "Оплата — за рахунком (проформою), банківським переказом; реквізити зазначені в рахунку.",
+         "Розрахунковий період — один місяць, якщо не погоджено інше (наприклад, рік).",
+         "Підписка продовжується автоматично до скасування Клієнтом; за кожен період виставляється новий рахунок.",
+         "У разі несплати рахунку протягом 10 днів доступ переходить у режим «лише перегляд» до оплати."]],
+      ["3. Пробний період",
+        ["Новим Клієнтам надається безкоштовний пробний період 14 днів без зобов'язань оплати."]],
+      ["4. Скасування",
+        ["Скасувати підписку можна будь-коли — листом на " + CONTACT + " або засобами застосунку.",
+         "Доступ зберігається до кінця оплаченого періоду; повернення за поточний період не здійснюється."]],
+      ["5. Дані Клієнта",
+        ["Усі внесені дані належать Клієнту; експорт у Excel доступний будь-коли.",
+         "Після розірвання дані зберігаються 30 днів, потім видаляються.",
+         "Щодо персональних даних працівників Клієнт — контролер, Виконавець — обробник; дані використовуються лише для роботи сервісу."]],
+      ["6. Доступність та відповідальність",
+        ["Виконавець докладає розумних зусиль для безперебійної роботи, але не гарантує відсутність перерв.",
+         "Сервіс надається «як є»; Виконавець не відповідає за непрямі збитки та упущену вигоду.",
+         "Сукупна відповідальність обмежена сумою платежів Клієнта за останні 3 місяці."]],
+      ["7. Податки",
+        ["Виконавець не є платником ПДВ; суми в рахунках зазначені без ПДВ."]],
+      ["8. Зміна умов",
+        ["Виконавець може змінювати умови, повідомивши Клієнта електронною поштою не менш ніж за 14 днів. Продовження використання означає згоду."]],
+      ["9. Застосовне право",
+        ["Застосовується право Словацької Республіки. Спори вирішуються за місцем перебування Виконавця."]],
+    ],
+  },
+  sk: {
+    title: "Podmienky používania služby „Chasy“",
+    version: `Verzia ${VERSION}.`,
+    contact: `Kontakt: <a href="mailto:${CONTACT}">${CONTACT}</a>`,
+    sections: [
+      ["1. Predmet",
+        ["„Chasy“ je webová služba na evidenciu pracovného času zamestnancov (denník zmien, výpočet hodín, export a import Excelu). Služba je určená právnickým osobám a podnikateľom. Aktiváciou prístupového kódu vy („Klient“) prijímate tieto podmienky."]],
+      ["2. Predplatné a platba",
+        ["Cena sa oznamuje pri objednávke a je uvedená na faktúre.",
+         "Platba prebieha na základe (zálohovej) faktúry bankovým prevodom; platobné údaje sú uvedené na faktúre.",
+         "Zúčtovacie obdobie je jeden mesiac, ak nie je dohodnuté inak (napr. rok).",
+         "Predplatné sa automaticky obnovuje až do zrušenia Klientom; za každé obdobie sa vystaví nová faktúra.",
+         "Pri neuhradení faktúry do 10 dní sa prístup prepne do režimu „iba na čítanie“ až do úhrady."]],
+      ["3. Skúšobné obdobie",
+        ["Noví Klienti majú 14 dní zdarma bez záväzku platby."]],
+      ["4. Zrušenie",
+        ["Predplatné je možné zrušiť kedykoľvek — e-mailom na " + CONTACT + " alebo v aplikácii.",
+         "Prístup zostáva do konca uhradeného obdobia; platba za začaté obdobie sa nevracia."]],
+      ["5. Údaje Klienta",
+        ["Všetky zadané údaje patria Klientovi; export do Excelu je dostupný kedykoľvek.",
+         "Po ukončení sa údaje uchovávajú 30 dní, potom sa vymažú.",
+         "Vo vzťahu k osobným údajom zamestnancov je Klient prevádzkovateľom a Poskytovateľ sprostredkovateľom; údaje sa používajú len na fungovanie služby."]],
+      ["6. Dostupnosť a zodpovednosť",
+        ["Poskytovateľ vynakladá primerané úsilie na nepretržitú prevádzku, nezaručuje však bezchybnosť.",
+         "Služba sa poskytuje „tak, ako je“; Poskytovateľ nezodpovedá za nepriame škody a ušlý zisk.",
+         "Celková zodpovednosť je obmedzená sumou platieb Klienta za posledné 3 mesiace."]],
+      ["7. Dane",
+        ["Poskytovateľ nie je platiteľom DPH; sumy na faktúrach sú bez DPH."]],
+      ["8. Zmeny podmienok",
+        ["Poskytovateľ môže podmienky zmeniť po oznámení Klientovi e-mailom najmenej 14 dní vopred. Pokračovanie v používaní znamená súhlas."]],
+      ["9. Rozhodné právo",
+        ["Uplatňuje sa právo Slovenskej republiky. Spory sa riešia podľa sídla Poskytovateľa."]],
+    ],
+  },
+  en: {
+    title: "Chasy — Terms of Use",
+    version: `Version ${VERSION}.`,
+    contact: `Contact: <a href="mailto:${CONTACT}">${CONTACT}</a>`,
+    sections: [
+      ["1. Subject",
+        ["Chasy is a web service for tracking employees' working time (shift log, hours totals, Excel export and import). It is offered to companies and sole traders. By redeeming an access code you (the \"Customer\") accept these terms."]],
+      ["2. Subscription and payment",
+        ["The price is stated at checkout and on the invoice.",
+         "Payment is made against a (proforma) invoice by bank transfer; payment details are on the invoice.",
+         "The billing period is one month unless agreed otherwise (e.g. yearly).",
+         "The subscription renews automatically until cancelled by the Customer; a new invoice is issued each period.",
+         "If an invoice is unpaid for 10 days, access switches to read-only until payment."]],
+      ["3. Trial period",
+        ["New Customers get 14 days free with no payment obligation."]],
+      ["4. Cancellation",
+        ["You may cancel at any time — by e-mail to " + CONTACT + " or from within the app.",
+         "Access remains until the end of the paid period; no refund for the current period."]],
+      ["5. Customer data",
+        ["All entered data belongs to the Customer; Excel export is available at any time.",
+         "After termination, data is kept for 30 days and then deleted.",
+         "For employees' personal data the Customer is the controller and the Provider is the processor; data is used only to operate the service."]],
+      ["6. Availability and liability",
+        ["The Provider makes reasonable efforts to keep the service running but does not guarantee it is uninterrupted or error-free.",
+         "The service is provided \"as is\"; the Provider is not liable for indirect damages or lost profit.",
+         "Total liability is limited to the Customer's payments over the last 3 months."]],
+      ["7. Taxes",
+        ["The Provider is not a VAT payer; invoice amounts are stated without VAT."]],
+      ["8. Changes to the terms",
+        ["The Provider may change these terms with at least 14 days' notice by e-mail. Continued use means acceptance."]],
+      ["9. Governing law",
+        ["The law of the Slovak Republic applies. Disputes are resolved at the Provider's seat."]],
+    ],
+  },
+};
+
+function pickLang() {
+  try {
+    const s = localStorage.getItem("chasy_lang");
+    if (s && T[s]) return s;
+  } catch (_) {}
+  const c = (navigator.language || "ru").slice(0, 2).toLowerCase();
+  return T[c] ? c : "ru";
+}
+
+function render(lang) {
+  const d = T[lang] || T.ru;
+  document.documentElement.lang = lang;
+  document.getElementById("t-title").textContent = d.title;
+  document.getElementById("t-version").textContent = d.version;
+  document.getElementById("t-contact").innerHTML = d.contact;
+  const body = document.getElementById("t-body");
+  body.innerHTML = "";
+  for (const [h, items] of d.sections) {
+    const el = document.createElement("h2");
+    el.textContent = h;
+    body.append(el);
+    if (items.length === 1) {
+      const p = document.createElement("p");
+      p.textContent = items[0];
+      body.append(p);
+    } else {
+      const ul = document.createElement("ul");
+      for (const it of items) {
+        const li = document.createElement("li");
+        li.textContent = it;
+        ul.append(li);
+      }
+      body.append(ul);
+    }
+  }
+  document.querySelectorAll(".langbar button").forEach((b) => {
+    b.setAttribute("aria-pressed", String(b.dataset.lang === lang));
+  });
+}
+
+document.querySelectorAll(".langbar button").forEach((b) => {
+  b.addEventListener("click", () => {
+    try { localStorage.setItem("chasy_lang", b.dataset.lang); } catch (_) {}
+    render(b.dataset.lang);
+  });
+});
+
+render(pickLang());
+</script>
 </body>
 </html>

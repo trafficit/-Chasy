@@ -1,17 +1,21 @@
-name: worklog
+name: chasy
+
+# Chasy runs behind an existing reverse proxy (Caddy / nginx / Traefik).
+# The app is published only on 127.0.0.1:${APP_PORT}; the proxy terminates
+# TLS and forwards to it. See deploy/chasy.caddy for the Caddy snippet.
 
 services:
   db:
     image: postgres:16-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: worklog
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-worklog}
-      POSTGRES_DB: worklog
+      POSTGRES_USER: chasy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: chasy
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U worklog"]
+      test: ["CMD-SHELL", "pg_isready -U chasy"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -25,7 +29,7 @@ services:
       db:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgresql+psycopg2://worklog:${POSTGRES_PASSWORD:-worklog}@db:5432/worklog
+      DATABASE_URL: postgresql+psycopg2://chasy:${POSTGRES_PASSWORD}@db:5432/chasy
       SECRET_KEY: ${SECRET_KEY:?set SECRET_KEY in .env}
       BASE_URL: ${BASE_URL:?set BASE_URL in .env}
       SESSION_DAYS: ${SESSION_DAYS:-30}
@@ -37,6 +41,10 @@ services:
       SMTP_FROM: ${SMTP_FROM:-Chasy <no-reply@example.com>}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       DEV_ECHO_MAGIC_LINK: ${DEV_ECHO_MAGIC_LINK:-false}
+      AUTH_MIN_INTERVAL_SEC: ${AUTH_MIN_INTERVAL_SEC:-45}
+      AUTH_MAX_LIVE_TOKENS: ${AUTH_MAX_LIVE_TOKENS:-3}
+      AUTH_MAX_PER_MIN_PER_IP: ${AUTH_MAX_PER_MIN_PER_IP:-5}
+      AUTH_MAX_PER_HOUR_PER_IP: ${AUTH_MAX_PER_HOUR_PER_IP:-20}
       LICENSE_REQUIRED: ${LICENSE_REQUIRED:-false}
       ADMIN_USER: ${ADMIN_USER:-}
       ADMIN_TOKEN: ${ADMIN_TOKEN:-}
@@ -44,25 +52,20 @@ services:
       FREE_EMAIL_DOMAINS: ${FREE_EMAIL_DOMAINS:-}
       PROMO_CODES: ${PROMO_CODES:-}
       TOS_VERSION: ${TOS_VERSION:-2026-09-09}
-    expose:
-      - "8000"
-
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    depends_on:
-      - app
+      INVOICE_PRICE: ${INVOICE_PRICE:-7}
+      INVOICE_CURRENCY: ${INVOICE_CURRENCY:-EUR}
+      INVOICE_DUE_DAYS: ${INVOICE_DUE_DAYS:-7}
+      INVOICE_NUMBER_PREFIX: ${INVOICE_NUMBER_PREFIX:-PF}
+      INVOICE_NOTE: ${INVOICE_NOTE:-}
+      SELLER_NAME: ${SELLER_NAME:-}
+      SELLER_ADDRESS: ${SELLER_ADDRESS:-}
+      SELLER_REG_ID: ${SELLER_REG_ID:-}
+      SELLER_IBAN: ${SELLER_IBAN:-}
+      SELLER_BANK: ${SELLER_BANK:-}
+      SELLER_PAY_LINK: ${SELLER_PAY_LINK:-}
+      SELLER_EMAIL: ${SELLER_EMAIL:-}
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      SITE_ADDRESS: ${SITE_ADDRESS:?set SITE_ADDRESS in .env}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
+      - "127.0.0.1:${APP_PORT:-8813}:8000"
 
 volumes:
   db_data:
-  caddy_data:
-  caddy_config:

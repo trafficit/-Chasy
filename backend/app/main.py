@@ -3,13 +3,24 @@ import secrets
 from io import BytesIO
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Header, HTTPException, Response, UploadFile
+from fastapi import (
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    File,
+    Header,
+    HTTPException,
+    Request,
+    Response,
+    UploadFile,
+)
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from . import invoice as inv
 from . import license as lic
 from . import models
 from .auth import (
@@ -43,6 +54,15 @@ def _migrate() -> None:
             text(
                 "ALTER TABLE users ADD COLUMN IF NOT EXISTS "
                 "tos_version VARCHAR DEFAULT ''"
+            )
+        )
+        conn.execute(
+            text("ALTER TABLE invoices DROP COLUMN IF EXISTS buyer_vat_id")
+        )
+        conn.execute(
+            text(
+                "ALTER TABLE magic_tokens ADD COLUMN IF NOT EXISTS "
+                "ip VARCHAR DEFAULT ''"
             )
         )
 
@@ -103,10 +123,52 @@ FRONTEND_DIR = _find_frontend()
 
 
 # --------------------------------------------------------------------------- #
+# tiny in-memory rate limiter (per single worker; soft guard)
+# --------------------------------------------------------------------------- #
+import time as _time
+from collections import defaultdict
+
+_hits: dict[str, list[float]] = defaultdict(list)
+
+
+def _throttle(key: str, limit: int, window_sec: int) -> bool:
+    """Return True if `key` is over `limit` calls within `window_sec`."""
+    now = _time.monotonic()
+    bucket = _hits[key]
+    cutoff = now - window_sec
+    bucket[:] = [t for t in bucket if t > cutoff]
+    bucket.append(now)
+    if len(_hits) > 5000:  # keep the dict from growing forever
+        for k in [k for k, v in _hits.items() if not v or v[-1] < cutoff]:
+            _hits.pop(k, None)
+    return len(bucket) > limit
+
+
+def client_ip(request: Request) -> str:
+    # Cloudflare sets CF-Connecting-IP (overwritten at the edge); Caddy sets
+    # X-Real-IP to the real TCP peer. Both are set by infra, not the client.
+    for header in ("cf-connecting-ip", "x-real-ip"):
+        value = request.headers.get(header)
+        if value:
+            return value.strip()
+    xff = request.headers.get("x-forwarded-for")
+    if xff:
+        return xff.split(",")[0].strip()
+    return request.client.host if request.client else "?"
+
+
+# --------------------------------------------------------------------------- #
 # schemas
 # --------------------------------------------------------------------------- #
 class EmailIn(BaseModel):
     email: EmailStr
+
+    model_config = {"extra": "allow"}  # honeypot field arrives as an extra
+
+    def honeypot_filled(self) -> bool:
+        extra = self.model_extra or {}
+        value = extra.get(settings.honeypot_field)
+        return bool(value and str(value).strip())
 
 
 class EntryIn(BaseModel):
@@ -158,6 +220,13 @@ class LicensePatch(BaseModel):
     note: str | None = None
 
 
+class InvoiceIn(BaseModel):
+    buyer_name: str
+    buyer_reg_id: str = ""
+    buyer_address: str = ""
+    months: int = 1
+
+
 # --------------------------------------------------------------------------- #
 # access control
 # --------------------------------------------------------------------------- #
@@ -201,20 +270,66 @@ def _license_public(lc: models.License, users_count: int) -> dict:
 # auth
 # --------------------------------------------------------------------------- #
 @app.post("/api/auth/request")
-async def auth_request(body: EmailIn, db: Session = Depends(get_db)):
+async def auth_request(
+    body: EmailIn,
+    request: Request,
+    background: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    # honeypot: a bot filled the hidden field -> look successful, do nothing
+    if body.honeypot_filled():
+        return {"ok": True}
+
     email = body.email.lower()
+    ip = client_ip(request)
+    now = dt.datetime.now(dt.timezone.utc)
+
+    def count(*conds) -> int:
+        return db.scalar(select(func.count(models.MagicToken.id)).where(*conds)) or 0
+
+    per_min = count(
+        models.MagicToken.ip == ip,
+        models.MagicToken.created_at > now - dt.timedelta(minutes=1),
+    )
+    per_hour = count(
+        models.MagicToken.ip == ip,
+        models.MagicToken.created_at > now - dt.timedelta(hours=1),
+    )
+    last = db.scalar(
+        select(func.max(models.MagicToken.created_at)).where(
+            models.MagicToken.email == email
+        )
+    )
+    live = count(
+        models.MagicToken.email == email,
+        models.MagicToken.used.is_(False),
+        models.MagicToken.expires_at > now,
+    )
+    too_soon = last is not None and (
+        now - (last if last.tzinfo else last.replace(tzinfo=dt.timezone.utc))
+    ) < dt.timedelta(seconds=settings.auth_min_interval_sec)
+
+    if (
+        per_min >= settings.auth_max_per_min_per_ip
+        or per_hour >= settings.auth_max_per_hour_per_ip
+        or live >= settings.auth_max_live_tokens
+        or too_soon
+    ):
+        raise HTTPException(status_code=429, detail="too_many_requests")
+
     raw, token_hash = new_magic_token()
     db.add(
         models.MagicToken(
             email=email,
             token_hash=token_hash,
-            expires_at=dt.datetime.now(dt.timezone.utc)
-            + dt.timedelta(minutes=settings.magic_link_ttl_minutes),
+            ip=ip,
+            expires_at=now + dt.timedelta(minutes=settings.magic_link_ttl_minutes),
         )
     )
     db.commit()
     link = f"{settings.base_url.rstrip('/')}/api/auth/callback?token={raw}"
-    await send_magic_link(email, link)
+    # send in the background so a slow SMTP server never blocks the response
+    background.add_task(send_magic_link, email, link)
     return {"ok": True}
 
 
@@ -269,9 +384,14 @@ def me(user: models.User = Depends(current_user)):
 @app.post("/api/license/redeem")
 def redeem(
     body: RedeemIn,
+    request: Request,
     user: models.User = Depends(current_user),
     db: Session = Depends(get_db),
 ):
+    # soft anti-guessing guard: 20 attempts / 10 min per IP
+    if _throttle(f"redeem:{client_ip(request)}", limit=20, window_sec=600):
+        raise HTTPException(status_code=429, detail="too_many_requests")
+
     if not body.accept_terms:
         raise HTTPException(status_code=400, detail="terms_not_accepted")
 
@@ -302,6 +422,91 @@ def redeem(
     db.commit()
     db.refresh(user)
     return {"license": lic.license_state(user)}
+
+
+# --------------------------------------------------------------------------- #
+# pricing + proforma invoices
+# --------------------------------------------------------------------------- #
+@app.get("/api/info")
+def public_info():
+    return {
+        "price": settings.invoice_price,
+        "currency": settings.invoice_currency.upper(),
+        "currency_sign": inv.currency_sign(),
+        "invoice_enabled": inv.enabled(),
+    }
+
+
+def _invoice_public(row: models.Invoice) -> dict:
+    return {
+        "number": row.number,
+        "variable_symbol": row.variable_symbol,
+        "status": row.status,
+        "issued_on": row.issued_on.date().isoformat(),
+        "due_on": row.due_on.date().isoformat() if row.due_on else None,
+        "buyer": {
+            "name": row.buyer_name,
+            "reg_id": row.buyer_reg_id,
+            "address": row.buyer_address,
+            "email": row.user_email,
+        },
+        "months": row.months,
+        "unit_price": row.unit_price,
+        "amount": row.amount,
+        "currency": row.currency,
+        "seller": inv.seller_block(),
+        "note": settings.invoice_note,
+        "product": "Chasy — доступ к сервису",
+    }
+
+
+@app.post("/api/invoice")
+def create_invoice(
+    body: InvoiceIn,
+    user: models.User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    if not inv.enabled():
+        raise HTTPException(status_code=404, detail="invoicing_disabled")
+    if not body.buyer_name.strip():
+        raise HTTPException(status_code=400, detail="buyer_name_required")
+
+    calc = inv.compute(body.months)
+    now = dt.datetime.now(dt.timezone.utc)
+    with engine.begin() as conn:
+        number, vs = inv.next_number(conn)
+
+    row = models.Invoice(
+        number=number,
+        variable_symbol=vs,
+        user_id=user.id,
+        user_email=user.email,
+        buyer_name=body.buyer_name.strip(),
+        buyer_reg_id=body.buyer_reg_id.strip(),
+        buyer_address=body.buyer_address.strip(),
+        months=calc["months"],
+        unit_price=calc["unit_price"],
+        amount=calc["amount"],
+        currency=calc["currency"],
+        issued_on=now,
+        due_on=now + dt.timedelta(days=settings.invoice_due_days),
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    return _invoice_public(row)
+
+
+@app.get("/api/invoice/{number}")
+def get_invoice(
+    number: str,
+    user: models.User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    row = db.scalar(select(models.Invoice).where(models.Invoice.number == number))
+    if row is None or row.user_id != user.id:
+        raise HTTPException(status_code=404, detail="not_found")
+    return _invoice_public(row)
 
 
 # --------------------------------------------------------------------------- #
@@ -574,6 +779,28 @@ def admin_unbind_user(user_id: str, db: Session = Depends(get_db)):
     return Response(status_code=204)
 
 
+@app.get("/api/admin/invoices", dependencies=[Depends(require_admin)])
+def admin_list_invoices(db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(models.Invoice).order_by(models.Invoice.created_at.desc())
+    ).all()
+    return [
+        {
+            "number": r.number,
+            "variable_symbol": r.variable_symbol,
+            "user_email": r.user_email,
+            "buyer_name": r.buyer_name,
+            "months": r.months,
+            "amount": r.amount,
+            "currency": r.currency,
+            "status": r.status,
+            "issued_on": r.issued_on.date().isoformat(),
+            "due_on": r.due_on.date().isoformat() if r.due_on else None,
+        }
+        for r in rows
+    ]
+
+
 @app.get("/admin")
 def admin_page():
     return FileResponse(FRONTEND_DIR / "admin.html")
@@ -582,6 +809,11 @@ def admin_page():
 @app.get("/terms")
 def terms_page():
     return FileResponse(FRONTEND_DIR / "terms.html")
+
+
+@app.get("/invoice")
+def invoice_page():
+    return FileResponse(FRONTEND_DIR / "invoice.html")
 
 
 # --------------------------------------------------------------------------- #

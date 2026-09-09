@@ -48,6 +48,7 @@ const I18N = {
     imported: "Импортировано записей: {n}",
     err_mail: "Не удалось отправить письмо",
     err_link: "Ссылка недействительна или устарела — запросите новую",
+    err_rate: "Слишком много попыток. Подождите немного.",
     about: "О приложении",
     about_desc:
       "Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал, экспорт и импорт Excel.",
@@ -70,6 +71,8 @@ const I18N = {
     lic_tos_link: "условия использования",
     lic_tos_required: "Примите условия использования",
     about_terms: "Условия использования",
+    about_invoice: "Сформировать счёт",
+    about_price: "Тариф: {price}/мес за компанию · 14 дней бесплатно · продление автоматическое, отмена в любой момент",
   },
   uk: {
     logout: "вийти",
@@ -104,6 +107,7 @@ const I18N = {
     imported: "Імпортовано записів: {n}",
     err_mail: "Не вдалося надіслати лист",
     err_link: "Посилання недійсне або застаріле — запросіть нове",
+    err_rate: "Забагато спроб. Зачекайте трохи.",
     about: "Про застосунок",
     about_desc:
       "Облік робочих годин: вхід за посиланням з листа, у кожного свій журнал, експорт та імпорт Excel.",
@@ -126,6 +130,8 @@ const I18N = {
     lic_tos_link: "умови використання",
     lic_tos_required: "Прийміть умови використання",
     about_terms: "Умови використання",
+    about_invoice: "Сформувати рахунок",
+    about_price: "Тариф: {price}/міс за компанію · 14 днів безкоштовно · продовження автоматичне, скасування будь-коли",
   },
   sk: {
     logout: "odhlásiť",
@@ -160,6 +166,7 @@ const I18N = {
     imported: "Importovaných záznamov: {n}",
     err_mail: "E-mail sa nepodarilo odoslať",
     err_link: "Odkaz je neplatný alebo vypršal — vyžiadajte si nový",
+    err_rate: "Príliš veľa pokusov. Chvíľu počkajte.",
     about: "O aplikácii",
     about_desc:
       "Evidencia pracovného času: prihlásenie cez odkaz v e-maile, každý má vlastný denník, export a import Excelu.",
@@ -182,6 +189,8 @@ const I18N = {
     lic_tos_link: "podmienkami používania",
     lic_tos_required: "Potvrďte podmienky používania",
     about_terms: "Podmienky používania",
+    about_invoice: "Vytvoriť faktúru",
+    about_price: "Cena: {price}/mes. za firmu · 14 dní zdarma · automatické obnovenie, zrušenie kedykoľvek",
   },
   en: {
     logout: "sign out",
@@ -216,6 +225,7 @@ const I18N = {
     imported: "Imported entries: {n}",
     err_mail: "Could not send the e-mail",
     err_link: "The link is invalid or expired — request a new one",
+    err_rate: "Too many attempts. Please wait a bit.",
     about: "About",
     about_desc:
       "Work-hours tracking: sign in via an e-mail link, each person has their own log, Excel export and import.",
@@ -238,11 +248,14 @@ const I18N = {
     lic_tos_link: "terms of use",
     lic_tos_required: "Please accept the terms of use",
     about_terms: "Terms of use",
+    about_invoice: "Create invoice",
+    about_price: "Price: {price}/mo per company · 14 days free · renews automatically, cancel any time",
   },
 };
 
 const CONTACT_EMAIL = "trafficit365@gmail.com";
 let licenseState = null;
+let pubInfo = null;
 
 const SUPPORTED = ["ru", "uk", "sk", "en"];
 
@@ -279,6 +292,17 @@ function applyI18n() {
   if (sel) sel.value = lang;
   const ver = $("about-version");
   if (ver) ver.textContent = "v" + APP_VERSION;
+  const priceEl = $("about-price");
+  if (priceEl) {
+    priceEl.textContent =
+      pubInfo && pubInfo.price
+        ? t("about_price", {
+            price: `${pubInfo.price} ${pubInfo.currency_sign || pubInfo.currency || ""}`.trim(),
+          })
+        : "";
+  }
+  const invLink = $("invoice-link");
+  if (invLink) invLink.hidden = !(pubInfo && pubInfo.invoice_enabled);
   applyLicense();
 }
 
@@ -411,6 +435,7 @@ async function redeemCode(ev) {
         expired_code: "lic_err_expired_code",
         seats_full: "lic_err_seats_full",
         terms_not_accepted: "lic_tos_required",
+        too_many_requests: "err_rate",
       };
       key = map[(await r.json()).detail] || "err_generic";
     } catch (_) {}
@@ -691,12 +716,16 @@ $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = $("login-email").value.trim();
   if (!email) return;
+  const payload = { email };
+  const hp = $("hp-website");
+  if (hp && hp.value) payload.website = hp.value;
   const r = await api("/api/auth/request", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email }),
+    body: JSON.stringify(payload),
   });
   if (r.ok) $("login-sent").hidden = false;
+  else if (r.status === 429) toast(t("err_rate"));
   else toast(t("err_mail"));
 });
 
@@ -721,6 +750,10 @@ $("import-file").addEventListener("change", (ev) => {
 });
 
 (async function init() {
+  try {
+    const r = await api("/api/info");
+    if (r.ok) pubInfo = await r.json();
+  } catch (_) {}
   applyI18n();
 
   const params = new URLSearchParams(location.search);

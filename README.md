@@ -12,41 +12,55 @@
 | Бэкенд | FastAPI + SQLAlchemy, вся арифметика времени и Excel портированы из `worklog_dashboard2.py` |
 | БД | PostgreSQL |
 | Вход | magic link по e-mail, сессия в httpOnly-cookie (JWT) |
-| Прокси/TLS | Caddy (автоматический Let's Encrypt) |
+| Прокси/TLS | внешний (существующий Caddy на сервере) |
 
-Всё поднимается одним `docker compose up`.
+`docker compose` поднимает только `app` + `db`. Приложение слушает
+`127.0.0.1:${APP_PORT}`; TLS и домен даёт внешний reverse-proxy.
 
-## Быстрый старт на VPS
+## Деплой на VPS (за существующим Caddy, домен через Cloudflare)
 
 ```bash
-git clone https://github.com/trafficit/-Chasy.git worklog
-cd worklog
+git clone https://github.com/trafficit/-Chasy.git ~/Chasy
+cd ~/Chasy
 cp .env.example .env
-nano .env            # заполнить домен, секреты, SMTP
+nano .env            # BASE_URL, APP_PORT, SECRET_KEY, POSTGRES_PASSWORD, SMTP, ADMIN_TOKEN, SELLER_*
 docker compose up -d --build
+curl -sS localhost:8813/api/info      # проверка, что контейнер отвечает
 ```
 
-Открыть `https://<домен>` → ввести почту → перейти по ссылке из письма.
+**Caddy** — добавить блок из `deploy/chasy.caddy` в `/etc/caddy/Caddyfile`:
+
+```bash
+sudo cp /etc/caddy/Caddyfile /etc/caddy/Caddyfile.bak.$(date +%F)
+sudo sh -c 'cat ~/Chasy/deploy/chasy.caddy >> /etc/caddy/Caddyfile'
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+**Cloudflare** — в DNS зоны `profitsenser.com`:
+- запись `A` (или `CNAME`) `chasy` → IP сервера, **Proxied (оранжевое облако)**;
+- SSL/TLS mode: **Full (strict)** — Caddy получит настоящий Let's Encrypt сертификат.
+- Cloudflare шлёт `CF-Connecting-IP` → приложение использует его для rate-limit.
 
 ### Что заполнить в `.env`
 
 | Переменная | Что это |
 |---|---|
-| `SITE_ADDRESS` | домен для Caddy, напр. `worklog.example.com` (или `:80` для локального теста) |
-| `BASE_URL` | публичный адрес, как его открывают пользователи, напр. `https://worklog.example.com` — попадает в ссылки из писем |
+| `BASE_URL` | `https://chasy.profitsenser.com` — попадает в ссылки из писем |
+| `APP_PORT` | локальный порт (по умолчанию `8813`), тот же в `deploy/chasy.caddy` |
 | `SECRET_KEY` | `openssl rand -hex 32` |
-| `POSTGRES_PASSWORD` | длинный случайный пароль |
-| `SMTP_*` | доступ к почтовому серверу для отправки писем. Пусто → ссылка печатается в `docker compose logs -f app` (годится для первого теста) |
-
-DNS: A-запись поддомена → IP VPS. Порты 80 и 443 должны быть открыты.
+| `POSTGRES_PASSWORD` | `openssl rand -hex 24` |
+| `SMTP_*` | почтовый сервер для писем. Пусто → ссылка в `docker compose logs -f app` |
+| `ADMIN_USER` / `ADMIN_TOKEN` | вход в `/admin` (см. раздел про монетизацию) |
+| `SELLER_*` | реквизиты для счёта (см. раздел про счета) |
 
 ## Локальный тест без домена и почты
 
 ```bash
 cp .env.example .env
-# в .env:  SITE_ADDRESS=:80   BASE_URL=http://localhost   DEV_ECHO_MAGIC_LINK=true
+# в .env:  BASE_URL=http://localhost:8813   DEV_ECHO_MAGIC_LINK=true
 docker compose up --build
-# открыть http://localhost , запросить вход, ссылку взять из логов app
+# открыть http://localhost:8813 , ссылку для входа взять из логов app
 ```
 
 ## Монетизация — коды доступа (вариант A)
@@ -90,11 +104,41 @@ ADMIN_TOKEN=<openssl rand -hex 24>  # пусто = админка выключе
   дата и версия (`TOS_VERSION`) сохраняются в `users.tos_accepted_at` /
   `users.tos_version`. Меняешь текст `terms.html` → поднимаешь `TOS_VERSION`
   в `.env`.
-- Цена в интерфейсе не показывается — сообщается клиенту при оформлении
-  и указывается в счёте. Платёжных реквизитов (Wise/IBAN) в коде и на
-  сайте тоже нет.
+- Цена показывается в окне «О программе» (из `INVOICE_PRICE`/`INVOICE_CURRENCY`).
 - Пользователи с почтой из `FREE_EMAIL_DOMAINS` (напр. `ges-rent.sk`)
   заходят бесплатно автоматически, без кода и без окна согласия.
+
+**Счёт (проформа):**
+- Заполни в `.env` `SELLER_NAME` + `SELLER_IBAN` **или** `SELLER_PAY_LINK`
+  (+ адрес, `SELLER_REG_ID`, `SELLER_BANK`, `SELLER_EMAIL`, `INVOICE_NOTE`) —
+  появится ссылка «Сформировать счёт» в окне «О программе».
+- `SELLER_PAY_LINK` — ссылка на оплату (Wise «request money» и т.п.).
+  Если задать её и оставить `SELLER_IBAN` пустым — IBAN на счёте вообще
+  не показывается, только «Оплатить онлайн: <ссылка>».
+- Клиент вводит свои реквизиты (компания, IČO, адрес, число месяцев)
+  на `/invoice` → получает **zálohovú faktúru** (проформу) с суммой,
+  способом оплаты и переменным символом → печатает в PDF, платит.
+- Номера — сквозные (`PF{год}{NNNN}`), переменный символ = цифры номера.
+- Все выписанные счета видны в `/admin` (раздел «Счета»).
+- Твои платёжные реквизиты только в `.env` (gitignore) и в самом счёте,
+  который открывает залогиненный клиент; в репозитории их нет.
+- Это **проформа/счёт на оплату**, не налоговый документ. После оплаты
+  при необходимости выставляешь клиенту обычную фактуру.
+
+## Защита от ботов
+
+Без капчи — для инструмента на десяток компаний хватает:
+- **Rate-limit** на `POST /api/auth/request` (запрос ссылки для входа):
+  не чаще 1 письма в `AUTH_MIN_INTERVAL_SEC` на адрес, ≤ `AUTH_MAX_LIVE_TOKENS`
+  неиспользованных ссылок на адрес, ≤ `AUTH_MAX_PER_MIN_PER_IP` в минуту и
+  ≤ `AUTH_MAX_PER_HOUR_PER_IP` в час на IP. Превышение → `429`.
+- **Honeypot**: скрытое поле `website` в форме входа; если бот его заполнил —
+  ответ «успех», но письмо не отправляется.
+- Реальный IP берётся из `X-Real-IP`, который ставит Caddy (`{remote_host}`,
+  перезаписывается — подделать нельзя).
+- Мягкий лимит на `POST /api/license/redeem` (20 попыток / 10 мин на IP).
+
+Капчу (Cloudflare Turnstile) стоит добавлять только при реальном абьюзе.
 
 ## Обновление
 

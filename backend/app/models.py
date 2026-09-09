@@ -54,8 +54,38 @@ class MagicToken(Base):
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     email: Mapped[str] = mapped_column(String, index=True)
     token_hash: Mapped[str] = mapped_column(String, index=True)
+    ip: Mapped[str] = mapped_column(String, default="", index=True)
     expires_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True))
     used: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=_now, index=True
+    )
+
+
+class Invoice(Base):
+    __tablename__ = "invoices"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    number: Mapped[str] = mapped_column(String, unique=True, index=True)
+    variable_symbol: Mapped[str] = mapped_column(String, default="")
+    user_id: Mapped[str] = mapped_column(
+        ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    user_email: Mapped[str] = mapped_column(String, default="")
+    buyer_name: Mapped[str] = mapped_column(String, default="")
+    buyer_reg_id: Mapped[str] = mapped_column(String, default="")
+    buyer_address: Mapped[str] = mapped_column(Text, default="")
+    months: Mapped[int] = mapped_column(Integer, default=1)
+    unit_price: Mapped[str] = mapped_column(String, default="")
+    amount: Mapped[str] = mapped_column(String, default="")
+    currency: Mapped[str] = mapped_column(String, default="EUR")
+    status: Mapped[str] = mapped_column(String, default="proforma")
+    issued_on: Mapped[dt.datetime] = mapped_column(
+        DateTime(timezone=True), default=_now
+    )
+    due_on: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

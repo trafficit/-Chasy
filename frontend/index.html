@@ -33,6 +33,11 @@
     Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал,
     экспорт и импорт Excel.
   </p>
+  <p id="about-price" class="muted"></p>
+  <p>
+    <a id="invoice-link" href="/invoice" target="_blank" rel="noopener"
+       hidden data-i18n="about_invoice">Сформировать счёт</a>
+  </p>
   <p class="muted">
     <a href="/terms" target="_blank" rel="noopener" data-i18n="about_terms">Условия использования</a>
   </p>
@@ -51,6 +56,8 @@
   <form id="login-form">
     <input id="login-email" type="email" inputmode="email" autocomplete="email"
            placeholder="you@company.com" required />
+    <input id="hp-website" class="hp" type="text" name="website" tabindex="-1"
+           autocomplete="off" aria-hidden="true" />
     <button type="submit" data-i18n="login_btn">Получить ссылку</button>
   </form>
   <p id="login-sent" class="ok" hidden data-i18n="login_sent">

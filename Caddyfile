@@ -1,7 +1,0 @@
-# {$SITE_ADDRESS} is taken from .env:
-#   production : worklog.example.com
-#   local test : :80
-{$SITE_ADDRESS} {
-	encode gzip
-	reverse_proxy app:8000
-}
