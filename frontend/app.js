@@ -711,6 +711,11 @@ function showLogin() {
   $("login").hidden = false;
   $("who").hidden = true;
   $("logout").hidden = true;
+  if (!$("login-email").value) {
+    try {
+      $("login-email").value = localStorage.getItem("chasy_email") || "";
+    } catch (_) {}
+  }
 }
 
 async function showApp(me) {
@@ -740,6 +745,9 @@ $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = $("login-email").value.trim();
   if (!email) return;
+  try {
+    localStorage.setItem("chasy_email", email);
+  } catch (_) {}
   const payload = { email };
   const hp = $("hp-website");
   if (hp && hp.value) payload.website = hp.value;
