@@ -283,8 +283,6 @@ function applyI18n() {
   });
   const sel = $("lang");
   if (sel) sel.value = lang;
-  const ab = $("about-btn");
-  if (ab) ab.title = t("about");
   const ver = $("about-version");
   if (ver) ver.textContent = "v" + APP_VERSION;
   const price = $("about-price");

@@ -19,7 +19,6 @@
   <span class="spacer"></span>
   <span id="who" class="muted" hidden></span>
   <button id="logout" class="link" hidden data-i18n="logout">выйти</button>
-  <button id="about-btn" class="icon-btn" aria-label="About" title="">ⓘ</button>
   <select id="lang" aria-label="Language">
     <option value="ru">RU</option>
     <option value="uk">UKR</option>
@@ -29,7 +28,7 @@
 </header>
 
 <dialog id="about">
-  <h2><span class="brand">Chasy</span> <span id="about-version" class="muted"></span></h2>
+  <h2><span class="brand">Chasy</span></h2>
   <p data-i18n="about_desc">
     Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал,
     экспорт и импорт Excel.
@@ -124,6 +123,14 @@
     </div>
   </section>
 </main>
+
+<footer id="footer" class="muted">
+  <span class="brand">Chasy</span> <span id="about-version"></span>
+  <span aria-hidden="true">·</span>
+  <button id="about-btn" type="button" class="linkbtn" data-i18n="about">О приложении</button>
+  <span aria-hidden="true">·</span>
+  <a href="/terms" target="_blank" rel="noopener" data-i18n="about_terms">Условия использования</a>
+</footer>
 
 <script src="/app.js"></script>
 </body>

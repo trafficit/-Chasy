@@ -62,18 +62,31 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 }
 #lang:focus { outline: 2px solid var(--accent); }
 
-.icon-btn {
+#footer {
+  max-width: 640px;
+  margin: 20px auto 10px;
+  padding: 0 2px;
+  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 6px;
+}
+#footer a { color: var(--accent); text-decoration: none; }
+#footer a:hover { text-decoration: underline; }
+
+.linkbtn {
   flex: 0 0 auto;
   min-height: 0;
-  padding: 4px 6px;
-  font-size: 16px;
-  line-height: 1;
-  background: none;
+  padding: 0;
   border: none;
-  color: var(--muted);
+  background: none;
+  font: inherit;
+  color: var(--accent);
   cursor: pointer;
 }
-.icon-btn:hover { color: var(--ink); }
+.linkbtn:hover { text-decoration: underline; }
 
 #about {
   border: 1px solid var(--line);
