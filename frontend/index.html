@@ -14,75 +14,122 @@
 
 <div id="toast" class="toast" hidden></div>
 
+<header id="topbar">
+  <span class="brand">Chasy</span>
+  <span class="spacer"></span>
+  <span id="who" class="muted" hidden></span>
+  <button id="logout" class="link" hidden data-i18n="logout">выйти</button>
+  <select id="lang" aria-label="Language">
+    <option value="ru">RU</option>
+    <option value="uk">UKR</option>
+    <option value="sk">SK</option>
+    <option value="en">EN</option>
+  </select>
+</header>
+
+<dialog id="about">
+  <h2><span class="brand">Chasy</span></h2>
+  <p data-i18n="about_desc">
+    Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал,
+    экспорт и импорт Excel.
+  </p>
+  <p class="muted">
+    <a href="/terms" target="_blank" rel="noopener" data-i18n="about_terms">Условия использования</a>
+  </p>
+  <p class="muted">
+    <span data-i18n="about_contact">Связь</span>:
+    <a id="about-contact-link" href="mailto:trafficit365@gmail.com">trafficit365@gmail.com</a>
+  </p>
+  <form method="dialog">
+    <button data-i18n="about_close">Закрыть</button>
+  </form>
+</dialog>
+
 <!-- ---------- login ---------- -->
 <section id="login" class="card" hidden>
-  <h1>Chasy</h1>
-  <p class="muted">Введите рабочую почту — пришлём ссылку для входа.</p>
+  <p class="muted" data-i18n="login_hint">Введите рабочую почту — пришлём ссылку для входа.</p>
   <form id="login-form">
     <input id="login-email" type="email" inputmode="email" autocomplete="email"
            placeholder="you@company.com" required />
-    <button type="submit">Получить ссылку</button>
+    <button type="submit" data-i18n="login_btn">Получить ссылку</button>
   </form>
-  <p id="login-sent" class="ok" hidden>
+  <p id="login-sent" class="ok" hidden data-i18n="login_sent">
     Письмо отправлено. Откройте ссылку из письма на этом устройстве.
   </p>
 </section>
 
+<!-- ---------- access code gate ---------- -->
+<section id="license-gate" class="card" hidden>
+  <h2 data-i18n="lic_gate_title">Доступ по коду</h2>
+  <p class="muted" data-i18n="lic_gate_hint">Введите код доступа, который вам выдали.</p>
+  <form id="license-form">
+    <input id="license-code" type="text" autocomplete="off" spellcheck="false"
+           placeholder="CHASY-XXXX-XXXX" />
+    <label class="check">
+      <input id="license-tos" type="checkbox" />
+      <span>
+        <span data-i18n="lic_tos_label">Я принимаю</span>
+        <a href="/terms" target="_blank" rel="noopener" data-i18n="lic_tos_link">условия использования</a>
+      </span>
+    </label>
+    <button type="submit" data-i18n="lic_redeem">Активировать</button>
+  </form>
+</section>
+
 <!-- ---------- app ---------- -->
 <main id="app" hidden>
-  <header class="app-bar">
-    <strong>Chasy</strong>
-    <span class="spacer"></span>
-    <span id="who" class="muted"></span>
-    <button id="logout" class="link">выйти</button>
-  </header>
-
+  <div id="license-banner" class="banner" hidden></div>
   <section class="card">
     <div class="grid">
-      <label>Дата
+      <label><span data-i18n="f_date">Дата</span>
         <input id="f-date" type="date" />
       </label>
-      <label>Начало
+      <label><span data-i18n="f_start">Начало</span>
         <input id="f-start" type="time" />
       </label>
-      <label>Конец
+      <label><span data-i18n="f_end">Конец</span>
         <input id="f-end" type="time" />
       </label>
-      <label>Обед (мин или Ч:ММ)
+      <label><span data-i18n="f_lunch">Обед (мин или Ч:ММ)</span>
         <input id="f-lunch" type="text" inputmode="numeric" placeholder="30" />
       </label>
-      <label class="wide">Email
-        <input id="f-email" type="email" readonly tabindex="-1" />
-      </label>
-      <label class="wide">Комментарий
-        <input id="f-comment" type="text" placeholder="заметка" />
+      <label class="wide"><span data-i18n="f_comment">Комментарий</span>
+        <input id="f-comment" type="text" placeholder="заметка" data-i18n-ph="ph_comment" />
       </label>
     </div>
     <div class="row">
-      <button id="add">Добавить</button>
-      <button id="holiday" class="ghost">Выходной</button>
-      <button id="save-edit" class="ghost" hidden>Сохранить изменения</button>
-      <button id="cancel-edit" class="link" hidden>отмена</button>
+      <button id="add" data-i18n="add">Добавить</button>
+      <button id="holiday" class="ghost" data-i18n="holiday">Выходной</button>
+      <button id="save-edit" class="ghost" hidden data-i18n="save_edit">Сохранить изменения</button>
+      <button id="cancel-edit" class="link" hidden data-i18n="cancel">отмена</button>
     </div>
   </section>
 
   <section class="card">
     <ul id="list" class="list"></ul>
-    <p id="empty" class="muted" hidden>Пока нет записей.</p>
-    <div class="total" id="total">Net Total: 0 hours and 0 minutes</div>
+    <p id="empty" class="muted" hidden data-i18n="empty">Пока нет записей.</p>
+    <div class="total" id="total"></div>
     <div class="row">
-      <button id="up" class="ghost" disabled>⬆ Выше</button>
-      <button id="down" class="ghost" disabled>⬇ Ниже</button>
-      <button id="edit" class="ghost" disabled>✏️ Изменить</button>
-      <button id="del" class="ghost danger" disabled>🗑 Удалить</button>
+      <button id="up" class="ghost" disabled data-i18n="move_up">⬆ Выше</button>
+      <button id="down" class="ghost" disabled data-i18n="move_down">⬇ Ниже</button>
+      <button id="edit" class="ghost" disabled data-i18n="edit">✏️ Изменить</button>
+      <button id="del" class="ghost danger" disabled data-i18n="del">🗑 Удалить</button>
     </div>
     <div class="row">
-      <button id="export">Экспорт в Excel</button>
-      <button id="import-btn" class="ghost">Импорт из Excel</button>
+      <button id="export" data-i18n="export">Экспорт в Excel</button>
+      <button id="import-btn" class="ghost" data-i18n="import">Импорт из Excel</button>
       <input id="import-file" type="file" accept=".xlsx" hidden />
     </div>
   </section>
 </main>
+
+<footer id="footer" class="muted">
+  <span class="brand">Chasy</span> <span id="about-version"></span>
+  <span aria-hidden="true">·</span>
+  <button id="about-btn" type="button" class="linkbtn" data-i18n="about">О приложении</button>
+  <span aria-hidden="true">·</span>
+  <a href="/terms" target="_blank" rel="noopener" data-i18n="about_terms">Условия использования</a>
+</footer>
 
 <script src="/app.js"></script>
 </body>

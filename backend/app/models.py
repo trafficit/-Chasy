@@ -2,7 +2,7 @@ import datetime as dt
 import uuid
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from .db import Base
 
@@ -20,6 +20,31 @@ class User(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
     email: Mapped[str] = mapped_column(String, unique=True, index=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    license_id: Mapped[str | None] = mapped_column(
+        ForeignKey("licenses.id", ondelete="SET NULL"), nullable=True, index=True
+    )
+    license: Mapped["License | None"] = relationship(lazy="joined")
+    tos_accepted_at: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    tos_version: Mapped[str] = mapped_column(String, default="")
+
+
+class License(Base):
+    __tablename__ = "licenses"
+
+    id: Mapped[str] = mapped_column(String, primary_key=True, default=_uuid)
+    code: Mapped[str] = mapped_column(String, unique=True, index=True)
+    company: Mapped[str] = mapped_column(String, default="")
+    # NULL -> never expires
+    valid_until: Mapped[dt.datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
+    # NULL -> unlimited seats
+    seats: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    note: Mapped[str] = mapped_column(Text, default="")
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 

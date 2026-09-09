@@ -37,6 +37,13 @@ services:
       SMTP_FROM: ${SMTP_FROM:-Chasy <no-reply@example.com>}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       DEV_ECHO_MAGIC_LINK: ${DEV_ECHO_MAGIC_LINK:-false}
+      LICENSE_REQUIRED: ${LICENSE_REQUIRED:-false}
+      ADMIN_USER: ${ADMIN_USER:-}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      TRIAL_DAYS: ${TRIAL_DAYS:-0}
+      FREE_EMAIL_DOMAINS: ${FREE_EMAIL_DOMAINS:-}
+      PROMO_CODES: ${PROMO_CODES:-}
+      TOS_VERSION: ${TOS_VERSION:-2026-09-09}
     expose:
       - "8000"
 
