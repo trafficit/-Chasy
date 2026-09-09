@@ -67,16 +67,8 @@
   <section id="form-card" class="card noprint" hidden>
     <label data-t="f_company">Компания / название</label>
     <input id="f-company" type="text" autocomplete="organization" />
-    <div style="display:flex; gap:10px; flex-wrap:wrap">
-      <div style="flex:1 1 160px">
-        <label data-t="f_reg">Рег. номер</label>
-        <input id="f-reg" type="text" />
-      </div>
-      <div style="flex:1 1 160px">
-        <label data-t="f_vat">НДС / VAT ID</label>
-        <input id="f-vat" type="text" />
-      </div>
-    </div>
+    <label data-t="f_reg">Рег. номер (IČO)</label>
+    <input id="f-reg" type="text" />
     <label data-t="f_address">Адрес</label>
     <textarea id="f-address"></textarea>
     <label data-t="f_months">Период (месяцев)</label>
@@ -211,7 +203,6 @@ function renderDoc(inv) {
         <div><strong>${esc(s.name)}</strong></div>
         <div>${nl2br(s.address)}</div>
         ${s.reg_id ? `<div>${tr("reg")}: ${esc(s.reg_id)}</div>` : ""}
-        ${s.vat_id ? `<div>${tr("vat")}: ${esc(s.vat_id)}</div>` : ""}
         ${s.email ? `<div>${esc(s.email)}</div>` : ""}
       </div>
       <div class="party">
@@ -219,7 +210,6 @@ function renderDoc(inv) {
         <div><strong>${esc(b.name)}</strong></div>
         <div>${nl2br(b.address)}</div>
         ${b.reg_id ? `<div>${tr("reg")}: ${esc(b.reg_id)}</div>` : ""}
-        ${b.vat_id ? `<div>${tr("vat")}: ${esc(b.vat_id)}</div>` : ""}
         ${b.email ? `<div>${esc(b.email)}</div>` : ""}
       </div>
     </div>
@@ -278,7 +268,6 @@ $("create").onclick = async () => {
       body: JSON.stringify({
         buyer_name: name,
         buyer_reg_id: $("f-reg").value.trim(),
-        buyer_vat_id: $("f-vat").value.trim(),
         buyer_address: $("f-address").value.trim(),
         months: Number($("f-months").value),
       }),

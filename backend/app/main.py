@@ -46,6 +46,9 @@ def _migrate() -> None:
                 "tos_version VARCHAR DEFAULT ''"
             )
         )
+        conn.execute(
+            text("ALTER TABLE invoices DROP COLUMN IF EXISTS buyer_vat_id")
+        )
 
 
 def _seed_promo_codes() -> None:
@@ -162,7 +165,6 @@ class LicensePatch(BaseModel):
 class InvoiceIn(BaseModel):
     buyer_name: str
     buyer_reg_id: str = ""
-    buyer_vat_id: str = ""
     buyer_address: str = ""
     months: int = 1
 
@@ -336,7 +338,6 @@ def _invoice_public(row: models.Invoice) -> dict:
         "buyer": {
             "name": row.buyer_name,
             "reg_id": row.buyer_reg_id,
-            "vat_id": row.buyer_vat_id,
             "address": row.buyer_address,
             "email": row.user_email,
         },
@@ -373,7 +374,6 @@ def create_invoice(
         user_email=user.email,
         buyer_name=body.buyer_name.strip(),
         buyer_reg_id=body.buyer_reg_id.strip(),
-        buyer_vat_id=body.buyer_vat_id.strip(),
         buyer_address=body.buyer_address.strip(),
         months=calc["months"],
         unit_price=calc["unit_price"],

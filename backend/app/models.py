@@ -71,7 +71,6 @@ class Invoice(Base):
     user_email: Mapped[str] = mapped_column(String, default="")
     buyer_name: Mapped[str] = mapped_column(String, default="")
     buyer_reg_id: Mapped[str] = mapped_column(String, default="")
-    buyer_vat_id: Mapped[str] = mapped_column(String, default="")
     buyer_address: Mapped[str] = mapped_column(Text, default="")
     months: Mapped[int] = mapped_column(Integer, default=1)
     unit_price: Mapped[str] = mapped_column(String, default="")

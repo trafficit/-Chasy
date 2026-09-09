@@ -35,7 +35,6 @@ def seller_block() -> dict:
         "name": settings.seller_name,
         "address": settings.seller_address,
         "reg_id": settings.seller_reg_id,
-        "vat_id": settings.seller_vat_id,
         "iban": settings.seller_iban,
         "bank": settings.seller_bank,
         "email": settings.seller_email or settings.smtp_from,
