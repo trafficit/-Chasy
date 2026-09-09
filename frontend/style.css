@@ -62,6 +62,36 @@ h1 { font-size: 22px; margin: 0 0 4px; }
 }
 #lang:focus { outline: 2px solid var(--accent); }
 
+.icon-btn {
+  flex: 0 0 auto;
+  min-height: 0;
+  padding: 4px 6px;
+  font-size: 16px;
+  line-height: 1;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+.icon-btn:hover { color: var(--ink); }
+
+#about {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  max-width: 340px;
+  width: calc(100vw - 32px);
+  color: var(--ink);
+  background: var(--card);
+}
+#about::backdrop { background: rgba(0, 0, 0, .4); }
+#about h2 { margin: 0 0 8px; font-size: 18px; }
+#about h2 .brand { font-size: 18px; }
+#about p { margin: 8px 0; }
+#about a { color: var(--accent); }
+#about form { margin-top: 14px; }
+#about form button { width: 100%; }
+
 .card {
   background: var(--card);
   border: 1px solid var(--line);

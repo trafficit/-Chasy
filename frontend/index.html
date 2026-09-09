@@ -19,6 +19,7 @@
   <span class="spacer"></span>
   <span id="who" class="muted" hidden></span>
   <button id="logout" class="link" hidden data-i18n="logout">выйти</button>
+  <button id="about-btn" class="icon-btn" aria-label="About" title="">ⓘ</button>
   <select id="lang" aria-label="Language">
     <option value="ru">RU</option>
     <option value="uk">UKR</option>
@@ -26,6 +27,21 @@
     <option value="en">EN</option>
   </select>
 </header>
+
+<dialog id="about">
+  <h2><span class="brand">Chasy</span> <span id="about-version" class="muted"></span></h2>
+  <p data-i18n="about_desc">
+    Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал,
+    экспорт и импорт Excel.
+  </p>
+  <p class="muted">
+    <span data-i18n="about_contact">Связь</span>:
+    <a id="about-contact-link" href="mailto:trafficit365@gmail.com">trafficit365@gmail.com</a>
+  </p>
+  <form method="dialog">
+    <button data-i18n="about_close">Закрыть</button>
+  </form>
+</dialog>
 
 <!-- ---------- login ---------- -->
 <section id="login" class="card" hidden>

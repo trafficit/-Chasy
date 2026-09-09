@@ -4,6 +4,8 @@ const $ = (id) => document.getElementById(id);
 const api = (path, opts) =>
   fetch(path, { credentials: "same-origin", ...opts });
 
+const APP_VERSION = "1.0";
+
 let entries = [];
 let selectedId = null;
 let editingId = null;
@@ -46,6 +48,11 @@ const I18N = {
     imported: "Импортировано записей: {n}",
     err_mail: "Не удалось отправить письмо",
     err_link: "Ссылка недействительна или устарела — запросите новую",
+    about: "О приложении",
+    about_desc:
+      "Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал, экспорт и импорт Excel.",
+    about_contact: "Связь",
+    about_close: "Закрыть",
   },
   uk: {
     logout: "вийти",
@@ -80,6 +87,11 @@ const I18N = {
     imported: "Імпортовано записів: {n}",
     err_mail: "Не вдалося надіслати лист",
     err_link: "Посилання недійсне або застаріле — запросіть нове",
+    about: "Про застосунок",
+    about_desc:
+      "Облік робочих годин: вхід за посиланням з листа, у кожного свій журнал, експорт та імпорт Excel.",
+    about_contact: "Зв'язок",
+    about_close: "Закрити",
   },
   sk: {
     logout: "odhlásiť",
@@ -114,6 +126,11 @@ const I18N = {
     imported: "Importovaných záznamov: {n}",
     err_mail: "E-mail sa nepodarilo odoslať",
     err_link: "Odkaz je neplatný alebo vypršal — vyžiadajte si nový",
+    about: "O aplikácii",
+    about_desc:
+      "Evidencia pracovného času: prihlásenie cez odkaz v e-maile, každý má vlastný denník, export a import Excelu.",
+    about_contact: "Kontakt",
+    about_close: "Zavrieť",
   },
   en: {
     logout: "sign out",
@@ -148,6 +165,11 @@ const I18N = {
     imported: "Imported entries: {n}",
     err_mail: "Could not send the e-mail",
     err_link: "The link is invalid or expired — request a new one",
+    about: "About",
+    about_desc:
+      "Work-hours tracking: sign in via an e-mail link, each person has their own log, Excel export and import.",
+    about_contact: "Contact",
+    about_close: "Close",
   },
 };
 
@@ -184,6 +206,10 @@ function applyI18n() {
   });
   const sel = $("lang");
   if (sel) sel.value = lang;
+  const ab = $("about-btn");
+  if (ab) ab.title = t("about");
+  const ver = $("about-version");
+  if (ver) ver.textContent = "v" + APP_VERSION;
   render();
 }
 
@@ -460,6 +486,12 @@ async function showApp(email) {
 // wire up
 // --------------------------------------------------------------------------- //
 $("lang").addEventListener("change", (ev) => setLang(ev.target.value));
+
+$("about-btn").addEventListener("click", () => {
+  const dlg = $("about");
+  if (typeof dlg.showModal === "function") dlg.showModal();
+  else dlg.setAttribute("open", "");
+});
 
 $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
