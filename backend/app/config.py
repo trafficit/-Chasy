@@ -24,5 +24,14 @@ class Settings(BaseSettings):
     # if true (or SMTP not configured) the magic link is also printed to the log
     dev_echo_magic_link: bool = False
 
+    # licensing (model A: access codes with expiry)
+    # empty -> licensing disabled, everyone can use the app freely
+    license_required: bool = False
+    # token that unlocks the /admin panel; empty -> admin panel disabled
+    admin_token: str = ""
+    # free trial (days) granted to a brand-new account before a code is needed;
+    # 0 -> no trial, a code is required immediately
+    trial_days: int = 0
+
 
 settings = Settings()

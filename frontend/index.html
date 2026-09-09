@@ -56,8 +56,20 @@
   </p>
 </section>
 
+<!-- ---------- access code gate ---------- -->
+<section id="license-gate" class="card" hidden>
+  <h2 data-i18n="lic_gate_title">Доступ по коду</h2>
+  <p class="muted" data-i18n="lic_gate_hint">Введите код доступа, который вам выдали.</p>
+  <form id="license-form">
+    <input id="license-code" type="text" autocomplete="off" spellcheck="false"
+           placeholder="CHASY-XXXX-XXXX" />
+    <button type="submit" data-i18n="lic_redeem">Активировать</button>
+  </form>
+</section>
+
 <!-- ---------- app ---------- -->
 <main id="app" hidden>
+  <div id="license-banner" class="banner" hidden></div>
   <section class="card">
     <div class="grid">
       <label><span data-i18n="f_date">Дата</span>

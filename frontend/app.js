@@ -53,6 +53,19 @@ const I18N = {
       "Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал, экспорт и импорт Excel.",
     about_contact: "Связь",
     about_close: "Закрыть",
+    lic_gate_title: "Доступ по коду",
+    lic_gate_hint: "Введите код доступа, который вам выдали.",
+    lic_redeem: "Активировать",
+    lic_activated: "Доступ активирован",
+    lic_err_unknown_code: "Код не найден",
+    lic_err_revoked_code: "Код отключён",
+    lic_err_expired_code: "Срок действия кода истёк",
+    lic_err_seats_full: "Достигнут лимит пользователей по этому коду",
+    lic_need_active: "Нужен активный код доступа",
+    lic_banner_expired: "Доступ истёк {date}. Добавление записей отключено — продлите код.",
+    lic_banner_revoked: "Код доступа отключён. Свяжитесь с администратором:",
+    lic_banner_trial: "Пробный период до {date}.",
+    lic_banner_soon: "Доступ действует до {date}.",
   },
   uk: {
     logout: "вийти",
@@ -92,6 +105,19 @@ const I18N = {
       "Облік робочих годин: вхід за посиланням з листа, у кожного свій журнал, експорт та імпорт Excel.",
     about_contact: "Зв'язок",
     about_close: "Закрити",
+    lic_gate_title: "Доступ за кодом",
+    lic_gate_hint: "Введіть код доступу, який вам видали.",
+    lic_redeem: "Активувати",
+    lic_activated: "Доступ активовано",
+    lic_err_unknown_code: "Код не знайдено",
+    lic_err_revoked_code: "Код вимкнено",
+    lic_err_expired_code: "Термін дії коду минув",
+    lic_err_seats_full: "Досягнуто ліміту користувачів за цим кодом",
+    lic_need_active: "Потрібен активний код доступу",
+    lic_banner_expired: "Доступ закінчився {date}. Додавання записів вимкнено — продовжте код.",
+    lic_banner_revoked: "Код доступу вимкнено. Зв'яжіться з адміністратором:",
+    lic_banner_trial: "Пробний період до {date}.",
+    lic_banner_soon: "Доступ діє до {date}.",
   },
   sk: {
     logout: "odhlásiť",
@@ -131,6 +157,19 @@ const I18N = {
       "Evidencia pracovného času: prihlásenie cez odkaz v e-maile, každý má vlastný denník, export a import Excelu.",
     about_contact: "Kontakt",
     about_close: "Zavrieť",
+    lic_gate_title: "Prístup cez kód",
+    lic_gate_hint: "Zadajte prístupový kód, ktorý ste dostali.",
+    lic_redeem: "Aktivovať",
+    lic_activated: "Prístup aktivovaný",
+    lic_err_unknown_code: "Kód sa nenašiel",
+    lic_err_revoked_code: "Kód je vypnutý",
+    lic_err_expired_code: "Platnosť kódu vypršala",
+    lic_err_seats_full: "Dosiahnutý limit používateľov pre tento kód",
+    lic_need_active: "Potrebný je platný prístupový kód",
+    lic_banner_expired: "Prístup vypršal {date}. Pridávanie záznamov je vypnuté — obnovte kód.",
+    lic_banner_revoked: "Prístupový kód je vypnutý. Kontaktujte správcu:",
+    lic_banner_trial: "Skúšobné obdobie do {date}.",
+    lic_banner_soon: "Prístup platí do {date}.",
   },
   en: {
     logout: "sign out",
@@ -170,8 +209,24 @@ const I18N = {
       "Work-hours tracking: sign in via an e-mail link, each person has their own log, Excel export and import.",
     about_contact: "Contact",
     about_close: "Close",
+    lic_gate_title: "Access code",
+    lic_gate_hint: "Enter the access code you were given.",
+    lic_redeem: "Activate",
+    lic_activated: "Access activated",
+    lic_err_unknown_code: "Code not found",
+    lic_err_revoked_code: "Code is disabled",
+    lic_err_expired_code: "The code has expired",
+    lic_err_seats_full: "This code's user limit is reached",
+    lic_need_active: "An active access code is required",
+    lic_banner_expired: "Access expired on {date}. Adding entries is off — renew the code.",
+    lic_banner_revoked: "Access code is disabled. Contact the administrator:",
+    lic_banner_trial: "Trial period until {date}.",
+    lic_banner_soon: "Access valid until {date}.",
   },
 };
+
+const CONTACT_EMAIL = "trafficit365@gmail.com";
+let licenseState = null;
 
 const SUPPORTED = ["ru", "uk", "sk", "en"];
 
@@ -210,7 +265,7 @@ function applyI18n() {
   if (ab) ab.title = t("about");
   const ver = $("about-version");
   if (ver) ver.textContent = "v" + APP_VERSION;
-  render();
+  applyLicense();
 }
 
 function setLang(next) {
@@ -247,6 +302,109 @@ function dotsToIso(dots) {
 function minutes(hhmm) {
   const m = String(hhmm).match(/^(\d+):(\d+)$/);
   return m ? +m[1] * 60 + +m[2] : 0;
+}
+
+function fmtDate(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return isNaN(d.getTime()) ? iso : d.toLocaleDateString(lang);
+}
+
+// --------------------------------------------------------------------------- //
+// licensing
+// --------------------------------------------------------------------------- //
+function canWrite() {
+  const s = licenseState && licenseState.status;
+  return !s || s === "disabled" || s === "active" || s === "trial";
+}
+
+function applyLicense() {
+  if (!licenseState) {
+    render();
+    return;
+  }
+  const st = licenseState;
+  const gate = $("license-gate");
+  const banner = $("license-banner");
+
+  if (st.status === "none") {
+    gate.hidden = false;
+    $("app").hidden = true;
+    return;
+  }
+  gate.hidden = true;
+  $("app").hidden = false;
+
+  const link = ` <a href="mailto:${CONTACT_EMAIL}">${CONTACT_EMAIL}</a>`;
+  banner.hidden = true;
+  banner.className = "banner";
+  banner.textContent = "";
+  if (st.status === "expired") {
+    banner.className = "banner warn";
+    banner.innerHTML =
+      t("lic_banner_expired", { date: fmtDate(st.valid_until) }) + link;
+    banner.hidden = false;
+  } else if (st.status === "revoked") {
+    banner.className = "banner warn";
+    banner.innerHTML = t("lic_banner_revoked") + link;
+    banner.hidden = false;
+  } else if (st.status === "trial") {
+    banner.textContent = t("lic_banner_trial", { date: fmtDate(st.trial_until) });
+    banner.hidden = false;
+  } else if (st.status === "active" && st.valid_until) {
+    const daysLeft = (new Date(st.valid_until).getTime() - Date.now()) / 86400000;
+    if (daysLeft <= 7) {
+      banner.textContent = t("lic_banner_soon", { date: fmtDate(st.valid_until) });
+      banner.hidden = false;
+    }
+  }
+  render();
+}
+
+async function refreshLicense() {
+  const r = await api("/api/me");
+  if (r.ok) {
+    licenseState = (await r.json()).license || { status: "disabled" };
+    applyLicense();
+  }
+}
+
+function licBlocked(r) {
+  if (r.status === 402) {
+    toast(t("lic_need_active"));
+    refreshLicense();
+    return true;
+  }
+  return false;
+}
+
+async function redeemCode(ev) {
+  ev.preventDefault();
+  const code = $("license-code").value.trim();
+  if (!code) return;
+  const r = await api("/api/license/redeem", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ code }),
+  });
+  if (!r.ok) {
+    let key = "err_generic";
+    try {
+      const map = {
+        unknown_code: "lic_err_unknown_code",
+        revoked_code: "lic_err_revoked_code",
+        expired_code: "lic_err_expired_code",
+        seats_full: "lic_err_seats_full",
+      };
+      key = map[(await r.json()).detail] || "err_generic";
+    } catch (_) {}
+    return toast(t(key));
+  }
+  licenseState = (await r.json()).license;
+  $("license-code").value = "";
+  toast(t("lic_activated"));
+  applyLicense();
+  await load();
 }
 
 // --------------------------------------------------------------------------- //
@@ -303,10 +461,15 @@ function render() {
 
   const idx = entries.findIndex((e) => e.id === selectedId);
   const has = idx >= 0;
-  $("up").disabled = !has || idx === 0;
-  $("down").disabled = !has || idx === entries.length - 1;
-  $("edit").disabled = !has;
-  $("del").disabled = !has;
+  const w = canWrite();
+  $("up").disabled = !w || !has || idx === 0;
+  $("down").disabled = !w || !has || idx === entries.length - 1;
+  $("edit").disabled = !w || !has;
+  $("del").disabled = !w || !has;
+  $("add").disabled = !w;
+  $("holiday").disabled = !w;
+  $("import-btn").disabled = !w;
+  $("save-edit").disabled = !w;
 }
 
 // --------------------------------------------------------------------------- //
@@ -355,7 +518,7 @@ function sameSlot(a, b) {
 }
 
 async function addEntry() {
-  if (editingId || addBusy) return;
+  if (editingId || addBusy || !canWrite()) return;
   const body = formPayload();
   if (!body.date) return toast(t("err_no_date"));
   const dup = entries.find((e) => sameSlot(e, body));
@@ -373,16 +536,18 @@ async function addEntry() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
+    if (licBlocked(r)) return;
     if (!r.ok) return toast((await r.json()).detail || t("err_generic"));
     clearForm();
     await load();
   } finally {
     addBusy = false;
-    $("add").disabled = false;
+    render();
   }
 }
 
 async function addHoliday() {
+  if (!canWrite()) return;
   const iso = $("f-date").value;
   const base = iso ? isoToDots(iso) : isoToDots(new Date().toISOString().slice(0, 10));
   const r = await api("/api/entries", {
@@ -390,11 +555,13 @@ async function addHoliday() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ date: `${base} (Holiday)` }),
   });
+  if (licBlocked(r)) return;
   if (!r.ok) return toast(t("err_generic"));
   await load();
 }
 
 function startEdit() {
+  if (!canWrite()) return;
   const e = entries.find((x) => x.id === selectedId);
   if (!e) return;
   editingId = e.id;
@@ -420,6 +587,7 @@ function stopEdit() {
 }
 
 async function saveEdit() {
+  if (!canWrite()) return;
   const body = formPayload();
   if (!body.date) return toast(t("err_no_date"));
   const r = await api(`/api/entries/${editingId}`, {
@@ -427,36 +595,42 @@ async function saveEdit() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
+  if (licBlocked(r)) return;
   if (!r.ok) return toast((await r.json()).detail || t("err_generic"));
   stopEdit();
   await load();
 }
 
 async function del() {
-  if (!selectedId) return;
+  if (!selectedId || !canWrite()) return;
   const r = await api(`/api/entries/${selectedId}`, { method: "DELETE" });
+  if (licBlocked(r)) return;
   if (!r.ok && r.status !== 204) return toast(t("err_generic"));
   selectedId = null;
   await load();
 }
 
 async function move(dir) {
+  if (!canWrite()) return;
   const idx = entries.findIndex((e) => e.id === selectedId);
   const j = idx + dir;
   if (idx < 0 || j < 0 || j >= entries.length) return;
   [entries[idx], entries[j]] = [entries[j], entries[idx]];
   render();
-  await api("/api/entries/reorder", {
+  const r = await api("/api/entries/reorder", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ids: entries.map((e) => e.id) }),
   });
+  if (licBlocked(r)) await load();
 }
 
 async function importFile(file) {
+  if (!canWrite()) return;
   const fd = new FormData();
   fd.append("file", file);
   const r = await api("/api/import", { method: "POST", body: fd });
+  if (licBlocked(r)) return;
   if (!r.ok) return toast((await r.json()).detail || t("err_import"));
   const { imported } = await r.json();
   toast(t("imported", { n: imported }));
@@ -468,24 +642,28 @@ async function importFile(file) {
 // --------------------------------------------------------------------------- //
 function showLogin() {
   $("app").hidden = true;
+  $("license-gate").hidden = true;
   $("login").hidden = false;
   $("who").hidden = true;
   $("logout").hidden = true;
 }
 
-async function showApp(email) {
+async function showApp(me) {
   $("login").hidden = true;
-  $("app").hidden = false;
-  $("who").textContent = email;
+  $("who").textContent = me.email;
   $("who").hidden = false;
   $("logout").hidden = false;
-  await load();
+  licenseState = me.license || { status: "disabled" };
+  applyLicense();
+  if (licenseState.status !== "none") await load();
 }
 
 // --------------------------------------------------------------------------- //
 // wire up
 // --------------------------------------------------------------------------- //
 $("lang").addEventListener("change", (ev) => setLang(ev.target.value));
+
+$("license-form").addEventListener("submit", redeemCode);
 
 $("about-btn").addEventListener("click", () => {
   const dlg = $("about");
@@ -536,8 +714,7 @@ $("import-file").addEventListener("change", (ev) => {
   }
   const r = await api("/api/me");
   if (r.ok) {
-    const { email } = await r.json();
-    showApp(email);
+    showApp(await r.json());
   } else {
     showLogin();
   }

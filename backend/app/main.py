@@ -1,14 +1,16 @@
 import datetime as dt
+import secrets
 from io import BytesIO
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, HTTPException, Response, UploadFile
-from fastapi.responses import RedirectResponse, StreamingResponse
+from fastapi import Depends, FastAPI, File, Header, HTTPException, Response, UploadFile
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, EmailStr
-from sqlalchemy import func, select
+from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
+from . import license as lic
 from . import models
 from .auth import (
     COOKIE,
@@ -23,6 +25,17 @@ from .mail import send_magic_link
 from .worklog import build_xlsx, compute, parse_xlsx
 
 Base.metadata.create_all(engine)
+
+
+def _migrate() -> None:
+    """Idempotent tweaks for databases created before licensing existed."""
+    with engine.begin() as conn:
+        conn.execute(
+            text("ALTER TABLE users ADD COLUMN IF NOT EXISTS license_id VARCHAR")
+        )
+
+
+_migrate()
 
 app = FastAPI(title="Chasy")
 
@@ -75,6 +88,60 @@ class EntryOut(BaseModel):
 
 class ReorderIn(BaseModel):
     ids: list[str]
+
+
+class RedeemIn(BaseModel):
+    code: str
+
+
+class LicenseIn(BaseModel):
+    company: str = ""
+    valid_until: dt.date | None = None
+    seats: int | None = None
+    note: str = ""
+
+
+class LicensePatch(BaseModel):
+    company: str | None = None
+    valid_until: dt.date | None = None
+    clear_valid_until: bool = False
+    seats: int | None = None
+    clear_seats: bool = False
+    active: bool | None = None
+    note: str | None = None
+
+
+# --------------------------------------------------------------------------- #
+# access control
+# --------------------------------------------------------------------------- #
+def require_writable(user: models.User = Depends(current_user)) -> models.User:
+    if not lic.can_write(user):
+        raise HTTPException(
+            status_code=402,
+            detail="An active access code is required.",
+        )
+    return user
+
+
+def require_admin(x_admin_token: str = Header(default="")) -> None:
+    if not settings.admin_token:
+        raise HTTPException(status_code=404, detail="Admin panel is disabled.")
+    if not secrets.compare_digest(x_admin_token, settings.admin_token):
+        raise HTTPException(status_code=401, detail="Bad admin token.")
+
+
+def _license_public(lc: models.License, users_count: int) -> dict:
+    return {
+        "id": lc.id,
+        "code": lc.code,
+        "company": lc.company,
+        "valid_until": lc.valid_until.date().isoformat() if lc.valid_until else None,
+        "seats": lc.seats,
+        "active": lc.active,
+        "note": lc.note,
+        "users": users_count,
+        "created_at": lc.created_at.isoformat(),
+    }
 
 
 # --------------------------------------------------------------------------- #
@@ -140,7 +207,41 @@ def logout():
 
 @app.get("/api/me")
 def me(user: models.User = Depends(current_user)):
-    return {"email": user.email}
+    return {"email": user.email, "license": lic.license_state(user)}
+
+
+# --------------------------------------------------------------------------- #
+# licensing (model A: access codes)
+# --------------------------------------------------------------------------- #
+@app.post("/api/license/redeem")
+def redeem(
+    body: RedeemIn,
+    user: models.User = Depends(current_user),
+    db: Session = Depends(get_db),
+):
+    code = body.code.strip().upper()
+    lc = db.scalar(select(models.License).where(models.License.code == code))
+    if lc is None:
+        raise HTTPException(status_code=404, detail="unknown_code")
+    if not lc.active:
+        raise HTTPException(status_code=403, detail="revoked_code")
+    valid_until = lc.valid_until
+    if valid_until is not None and valid_until.tzinfo is None:
+        valid_until = valid_until.replace(tzinfo=dt.timezone.utc)
+    if valid_until is not None and valid_until < dt.datetime.now(dt.timezone.utc):
+        raise HTTPException(status_code=403, detail="expired_code")
+
+    if lc.seats is not None and user.license_id != lc.id:
+        taken = db.scalar(
+            select(func.count(models.User.id)).where(models.User.license_id == lc.id)
+        )
+        if taken >= lc.seats:
+            raise HTTPException(status_code=403, detail="seats_full")
+
+    user.license_id = lc.id
+    db.commit()
+    db.refresh(user)
+    return {"license": lic.license_state(user)}
 
 
 # --------------------------------------------------------------------------- #
@@ -161,7 +262,7 @@ def list_entries(user=Depends(current_user), db: Session = Depends(get_db)):
 
 @app.post("/api/entries", response_model=EntryOut)
 def create_entry(
-    body: EntryIn, user=Depends(current_user), db: Session = Depends(get_db)
+    body: EntryIn, user=Depends(require_writable), db: Session = Depends(get_db)
 ):
     try:
         computed = compute(body.date, body.start, body.end, body.lunch, body.comment)
@@ -184,7 +285,7 @@ def create_entry(
 def update_entry(
     entry_id: str,
     body: EntryIn,
-    user=Depends(current_user),
+    user=Depends(require_writable),
     db: Session = Depends(get_db),
 ):
     entry = db.get(models.Entry, entry_id)
@@ -203,7 +304,7 @@ def update_entry(
 
 @app.delete("/api/entries/{entry_id}", status_code=204)
 def delete_entry(
-    entry_id: str, user=Depends(current_user), db: Session = Depends(get_db)
+    entry_id: str, user=Depends(require_writable), db: Session = Depends(get_db)
 ):
     entry = db.get(models.Entry, entry_id)
     if entry is None or entry.user_id != user.id:
@@ -215,7 +316,7 @@ def delete_entry(
 
 @app.post("/api/entries/reorder")
 def reorder(
-    body: ReorderIn, user=Depends(current_user), db: Session = Depends(get_db)
+    body: ReorderIn, user=Depends(require_writable), db: Session = Depends(get_db)
 ):
     rows = {e.id: e for e in db.scalars(_entries_q(user.id)).all()}
     for pos, entry_id in enumerate(body.ids):
@@ -245,7 +346,7 @@ def export_xlsx(user=Depends(current_user), db: Session = Depends(get_db)):
 @app.post("/api/import")
 async def import_xlsx(
     file: UploadFile = File(...),
-    user=Depends(current_user),
+    user=Depends(require_writable),
     db: Session = Depends(get_db),
 ):
     raw = await file.read()
@@ -275,6 +376,130 @@ async def import_xlsx(
         db.add(models.Entry(user_id=user.id, position=pos, **computed))
     db.commit()
     return {"imported": len(parsed)}
+
+
+# --------------------------------------------------------------------------- #
+# admin panel (X-Admin-Token header == ADMIN_TOKEN)
+# --------------------------------------------------------------------------- #
+def _users_count(db: Session, license_id: str) -> int:
+    return db.scalar(
+        select(func.count(models.User.id)).where(models.User.license_id == license_id)
+    )
+
+
+@app.get("/api/admin/licenses", dependencies=[Depends(require_admin)])
+def admin_list_licenses(db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(models.License).order_by(models.License.created_at.desc())
+    ).all()
+    return [_license_public(lc, _users_count(db, lc.id)) for lc in rows]
+
+
+@app.post("/api/admin/licenses", dependencies=[Depends(require_admin)])
+def admin_create_license(body: LicenseIn, db: Session = Depends(get_db)):
+    for _ in range(5):
+        code = lic.generate_code()
+        if not db.scalar(select(models.License).where(models.License.code == code)):
+            break
+    else:
+        raise HTTPException(status_code=500, detail="could not allocate a code")
+
+    vu = (
+        dt.datetime.combine(body.valid_until, dt.time.max, tzinfo=dt.timezone.utc)
+        if body.valid_until
+        else None
+    )
+    lc = models.License(
+        code=code,
+        company=body.company.strip(),
+        valid_until=vu,
+        seats=body.seats,
+        note=body.note.strip(),
+    )
+    db.add(lc)
+    db.commit()
+    db.refresh(lc)
+    return _license_public(lc, 0)
+
+
+@app.patch("/api/admin/licenses/{license_id}", dependencies=[Depends(require_admin)])
+def admin_update_license(
+    license_id: str, body: LicensePatch, db: Session = Depends(get_db)
+):
+    lc = db.get(models.License, license_id)
+    if lc is None:
+        raise HTTPException(status_code=404, detail="not found")
+    if body.company is not None:
+        lc.company = body.company.strip()
+    if body.note is not None:
+        lc.note = body.note.strip()
+    if body.active is not None:
+        lc.active = body.active
+    if body.clear_valid_until:
+        lc.valid_until = None
+    elif body.valid_until is not None:
+        lc.valid_until = dt.datetime.combine(
+            body.valid_until, dt.time.max, tzinfo=dt.timezone.utc
+        )
+    if body.clear_seats:
+        lc.seats = None
+    elif body.seats is not None:
+        lc.seats = body.seats
+    db.commit()
+    db.refresh(lc)
+    return _license_public(lc, _users_count(db, lc.id))
+
+
+@app.delete(
+    "/api/admin/licenses/{license_id}",
+    status_code=204,
+    dependencies=[Depends(require_admin)],
+)
+def admin_delete_license(license_id: str, db: Session = Depends(get_db)):
+    lc = db.get(models.License, license_id)
+    if lc is not None:
+        db.execute(
+            text("UPDATE users SET license_id = NULL WHERE license_id = :i"),
+            {"i": license_id},
+        )
+        db.delete(lc)
+        db.commit()
+    return Response(status_code=204)
+
+
+@app.get("/api/admin/users", dependencies=[Depends(require_admin)])
+def admin_list_users(db: Session = Depends(get_db)):
+    rows = db.scalars(
+        select(models.User).order_by(models.User.created_at.desc())
+    ).all()
+    return [
+        {
+            "id": u.id,
+            "email": u.email,
+            "created_at": u.created_at.isoformat(),
+            "license_code": u.license.code if u.license else None,
+            "license_company": u.license.company if u.license else None,
+        }
+        for u in rows
+    ]
+
+
+@app.post(
+    "/api/admin/users/{user_id}/unbind",
+    status_code=204,
+    dependencies=[Depends(require_admin)],
+)
+def admin_unbind_user(user_id: str, db: Session = Depends(get_db)):
+    u = db.get(models.User, user_id)
+    if u is not None:
+        u.license_id = None
+        db.commit()
+    return Response(status_code=204)
+
+
+@app.get("/admin")
+def admin_page():
+    return FileResponse(FRONTEND_DIR / "admin.html")
 
 
 # --------------------------------------------------------------------------- #

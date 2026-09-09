@@ -37,6 +37,9 @@ services:
       SMTP_FROM: ${SMTP_FROM:-Chasy <no-reply@example.com>}
       SMTP_STARTTLS: ${SMTP_STARTTLS:-true}
       DEV_ECHO_MAGIC_LINK: ${DEV_ECHO_MAGIC_LINK:-false}
+      LICENSE_REQUIRED: ${LICENSE_REQUIRED:-false}
+      ADMIN_TOKEN: ${ADMIN_TOKEN:-}
+      TRIAL_DAYS: ${TRIAL_DAYS:-0}
     expose:
       - "8000"
 

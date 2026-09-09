@@ -150,7 +150,23 @@ button.link {
 }
 button:disabled { opacity: .4; cursor: default; }
 
-#login-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+#login-form,
+#license-form { display: flex; flex-direction: column; gap: 10px; margin-top: 10px; }
+
+#license-gate h2 { font-size: 18px; margin: 0 0 4px; }
+#license-code { text-transform: uppercase; letter-spacing: .04em; }
+
+.banner {
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin: 10px 0 0;
+  font-size: 13px;
+  background: var(--card);
+}
+.banner.warn { border-left-color: var(--danger); }
+.banner a { color: var(--accent); }
 
 .list { list-style: none; margin: 0; padding: 0; }
 .list li {
