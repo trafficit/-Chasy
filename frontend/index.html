@@ -45,24 +45,41 @@
     <span data-i18n="about_contact">Связь</span>:
     <a id="about-contact-link" href="mailto:trafficit365@gmail.com">trafficit365@gmail.com</a>
   </p>
+  <p class="muted">
+    <span data-i18n="about_sponsor">Спонсор</span>:
+    <a href="https://ges-rent.sk" target="_blank" rel="noopener">ges-rent.sk</a>
+  </p>
   <form method="dialog">
     <button data-i18n="about_close">Закрыть</button>
   </form>
 </dialog>
 
 <!-- ---------- login ---------- -->
-<section id="login" class="card" hidden>
-  <p class="muted" data-i18n="login_hint">Введите рабочую почту — пришлём ссылку для входа.</p>
-  <form id="login-form">
-    <input id="login-email" type="email" inputmode="email" autocomplete="email"
-           placeholder="you@company.com" required />
-    <input id="hp-website" class="hp" type="text" name="website" tabindex="-1"
-           autocomplete="off" aria-hidden="true" />
-    <button type="submit" data-i18n="login_btn">Получить ссылку</button>
-  </form>
-  <p id="login-sent" class="ok" hidden data-i18n="login_sent">
-    Письмо отправлено. Откройте ссылку из письма на этом устройстве.
-  </p>
+<section id="login" hidden>
+  <div class="hero">
+    <h1 data-i18n="hero_title">Chasy — учёт рабочих часов команды</h1>
+    <p data-i18n="hero_sub">
+      Каждый сотрудник ведёт свой журнал смен, часы считаются автоматически.
+    </p>
+    <ul class="hero-list">
+      <li data-i18n="hero_f1">Журнал смен · авто-подсчёт часов и обеда</li>
+      <li data-i18n="hero_f2">У каждого свой лог · вход по ссылке из письма, без пароля</li>
+      <li data-i18n="hero_f3">Экспорт и импорт Excel · работает с телефона</li>
+    </ul>
+  </div>
+  <div class="card">
+    <p class="muted" data-i18n="login_hint">Введите рабочую почту — пришлём ссылку для входа.</p>
+    <form id="login-form">
+      <input id="login-email" type="email" inputmode="email" autocomplete="email"
+             placeholder="you@company.com" required />
+      <input id="hp-website" class="hp" type="text" name="website" tabindex="-1"
+             autocomplete="off" aria-hidden="true" />
+      <button id="login-send" type="submit" data-i18n="login_btn">Получить ссылку</button>
+    </form>
+    <p id="login-sent" class="ok" hidden data-i18n="login_sent">
+      Письмо отправлено. Откройте ссылку из письма на этом устройстве.
+    </p>
+  </div>
 </section>
 
 <!-- ---------- access code gate ---------- -->

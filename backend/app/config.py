@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     dev_echo_magic_link: bool = False
 
     # anti-abuse for POST /api/auth/request (magic-link spam / e-mail bombing)
-    auth_min_interval_sec: int = 45       # min seconds between links for one e-mail
+    auth_min_interval_sec: int = 30       # min seconds between links for one e-mail
     auth_max_live_tokens: int = 3         # max unused, unexpired links per e-mail
     auth_max_per_min_per_ip: int = 5
     auth_max_per_hour_per_ip: int = 20

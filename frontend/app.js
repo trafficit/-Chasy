@@ -20,6 +20,11 @@ const I18N = {
     login_hint: "Введите рабочую почту — пришлём ссылку для входа.",
     login_btn: "Получить ссылку",
     login_sent: "Письмо отправлено. Откройте ссылку из письма на этом устройстве.",
+    hero_title: "Chasy — учёт рабочих часов команды",
+    hero_sub: "Каждый ведёт свой журнал смен, часы считаются автоматически.",
+    hero_f1: "Журнал смен · авто-подсчёт часов и обеда",
+    hero_f2: "У каждого свой лог · вход по ссылке из письма, без пароля",
+    hero_f3: "Экспорт и импорт Excel · работает с телефона",
     f_date: "Дата",
     f_start: "Начало",
     f_end: "Конец",
@@ -53,6 +58,7 @@ const I18N = {
     about_desc:
       "Учёт рабочих часов: вход по ссылке из письма, у каждого свой журнал, экспорт и импорт Excel.",
     about_contact: "Связь",
+    about_sponsor: "Спонсор",
     about_close: "Закрыть",
     lic_gate_title: "Доступ по коду",
     lic_gate_hint: "Введите код доступа, который вам выдали.",
@@ -79,6 +85,11 @@ const I18N = {
     login_hint: "Введіть робочу пошту — надішлемо посилання для входу.",
     login_btn: "Отримати посилання",
     login_sent: "Лист надіслано. Відкрийте посилання з листа на цьому пристрої.",
+    hero_title: "Chasy — облік робочих годин команди",
+    hero_sub: "Кожен веде свій журнал змін, години рахуються автоматично.",
+    hero_f1: "Журнал змін · авто-підрахунок годин і обіду",
+    hero_f2: "У кожного свій лог · вхід за посиланням з листа, без пароля",
+    hero_f3: "Експорт та імпорт Excel · працює з телефона",
     f_date: "Дата",
     f_start: "Початок",
     f_end: "Кінець",
@@ -112,6 +123,7 @@ const I18N = {
     about_desc:
       "Облік робочих годин: вхід за посиланням з листа, у кожного свій журнал, експорт та імпорт Excel.",
     about_contact: "Зв'язок",
+    about_sponsor: "Спонсор",
     about_close: "Закрити",
     lic_gate_title: "Доступ за кодом",
     lic_gate_hint: "Введіть код доступу, який вам видали.",
@@ -138,6 +150,11 @@ const I18N = {
     login_hint: "Zadajte pracovný e-mail — pošleme odkaz na prihlásenie.",
     login_btn: "Získať odkaz",
     login_sent: "E-mail odoslaný. Otvorte odkaz z e-mailu na tomto zariadení.",
+    hero_title: "Chasy — evidencia pracovného času tímu",
+    hero_sub: "Každý si vedie svoj denník zmien, hodiny sa počítajú automaticky.",
+    hero_f1: "Denník zmien · automatický výpočet hodín a obeda",
+    hero_f2: "Každý má vlastný denník · prihlásenie cez odkaz v e-maile, bez hesla",
+    hero_f3: "Export a import Excelu · funguje z telefónu",
     f_date: "Dátum",
     f_start: "Začiatok",
     f_end: "Koniec",
@@ -171,6 +188,7 @@ const I18N = {
     about_desc:
       "Evidencia pracovného času: prihlásenie cez odkaz v e-maile, každý má vlastný denník, export a import Excelu.",
     about_contact: "Kontakt",
+    about_sponsor: "Sponzor",
     about_close: "Zavrieť",
     lic_gate_title: "Prístup cez kód",
     lic_gate_hint: "Zadajte prístupový kód, ktorý ste dostali.",
@@ -197,6 +215,11 @@ const I18N = {
     login_hint: "Enter your work e-mail — we'll send a sign-in link.",
     login_btn: "Send link",
     login_sent: "E-mail sent. Open the link from the message on this device.",
+    hero_title: "Chasy — team work-hours tracking",
+    hero_sub: "Everyone keeps their own shift log; hours are totalled automatically.",
+    hero_f1: "Shift log · automatic hours & lunch totals",
+    hero_f2: "Everyone has their own log · sign in via an e-mail link, no password",
+    hero_f3: "Excel export & import · works from your phone",
     f_date: "Date",
     f_start: "Start",
     f_end: "End",
@@ -230,6 +253,7 @@ const I18N = {
     about_desc:
       "Work-hours tracking: sign in via an e-mail link, each person has their own log, Excel export and import.",
     about_contact: "Contact",
+    about_sponsor: "Sponsor",
     about_close: "Close",
     lic_gate_title: "Access code",
     lic_gate_hint: "Enter the access code you were given.",
@@ -687,6 +711,11 @@ function showLogin() {
   $("login").hidden = false;
   $("who").hidden = true;
   $("logout").hidden = true;
+  if (!$("login-email").value) {
+    try {
+      $("login-email").value = localStorage.getItem("chasy_email") || "";
+    } catch (_) {}
+  }
 }
 
 async function showApp(me) {
@@ -716,6 +745,10 @@ $("login-form").addEventListener("submit", async (ev) => {
   ev.preventDefault();
   const email = $("login-email").value.trim();
   if (!email) return;
+  if ($("login-send").disabled) return;
+  try {
+    localStorage.setItem("chasy_email", email);
+  } catch (_) {}
   const payload = { email };
   const hp = $("hp-website");
   if (hp && hp.value) payload.website = hp.value;
@@ -724,10 +757,37 @@ $("login-form").addEventListener("submit", async (ev) => {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (r.ok) $("login-sent").hidden = false;
-  else if (r.status === 429) toast(t("err_rate"));
-  else toast(t("err_mail"));
+  if (r.ok) {
+    $("login-sent").hidden = false;
+    lockSendButton((pubInfo && pubInfo.auth_wait) || 30);
+  } else if (r.status === 429) {
+    toast(t("err_rate"));
+    lockSendButton((pubInfo && pubInfo.auth_wait) || 30);
+  } else {
+    toast(t("err_mail"));
+  }
 });
+
+function lockSendButton(seconds) {
+  lockSendButton._until = Date.now() + Math.max(1, seconds) * 1000;
+  const btn = $("login-send");
+  const base = t("login_btn");
+  const render = () => {
+    const left = Math.ceil((lockSendButton._until - Date.now()) / 1000);
+    if (left <= 0) {
+      clearInterval(lockSendButton._t);
+      lockSendButton._t = null;
+      btn.disabled = false;
+      btn.textContent = base;
+    } else {
+      btn.disabled = true;
+      btn.textContent = `${base} · ${left}`;
+    }
+  };
+  render();
+  clearInterval(lockSendButton._t);
+  lockSendButton._t = setInterval(render, 500);
+}
 
 $("logout").addEventListener("click", async () => {
   await api("/api/auth/logout", { method: "POST" });
